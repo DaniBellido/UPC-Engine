@@ -19,6 +19,8 @@ public:
 
 	void enableDebugLayer();
 	void createDevice();
+	void setUpInfoQueue();
+
 
 };
 

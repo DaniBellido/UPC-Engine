@@ -39,3 +39,12 @@ void D3D12Module::createDevice()
 	D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device));
 
 }
+
+void D3D12Module::setUpInfoQueue() 
+{
+	ComPtr<ID3D12InfoQueue> infoQueue;
+	device.As(&infoQueue);
+	infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+	infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+	infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+}

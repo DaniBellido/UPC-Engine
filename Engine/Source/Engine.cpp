@@ -7,6 +7,7 @@
 #include "Engine.h"
 
 #include "Application.h"
+#include "D3D12Module.h"
 
 #include <shellapi.h>
 
@@ -16,6 +17,8 @@
 #include "Mouse.h"
 
 #include "backends/imgui_impl_win32.h"
+
+
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -64,7 +67,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     MSG msg;
 
-    // Main message loop:
+    // Main message loop: A.K.A Game Loop
     while (GetMessage(&msg, nullptr, 0, 0))
     {
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
@@ -75,6 +78,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
     delete app;
+
+
+    ComPtr<IDXGIDebug> dxgiControler;
+    if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiControler))))
+    {
+        dxgiControler->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+    }
 
 
     return (int) msg.wParam;

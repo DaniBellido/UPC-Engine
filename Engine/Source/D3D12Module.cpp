@@ -40,6 +40,16 @@ void D3D12Module::createDevice()
 
 }
 
+void D3D12Module::createCommandAllocator() 
+{
+	device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
+}
+
+void D3D12Module::createCommandList() 
+{
+	device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList));
+}
+
 void D3D12Module::setUpInfoQueue() 
 {
 	ComPtr<ID3D12InfoQueue> infoQueue;

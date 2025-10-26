@@ -1,4 +1,4 @@
-#include "Globals.h"
+﻿#include "Globals.h"
 #include "D3D12Module.h"
 
 D3D12Module::D3D12Module(HWND wnd) : hWnd(wnd)
@@ -24,6 +24,7 @@ bool D3D12Module::cleanUp()
 	return true;
 	
 }
+
 
 void D3D12Module::enableDebugLayer() 
 {
@@ -109,5 +110,27 @@ void D3D12Module::createSwapChain()
 	// DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING: Allow tearing in windowed mode (VSync off)
 
 	ComPtr<IDXGISwapChain1> swapChain1;
-	factory->CreateSwapChainForHwnd(commandQueue.Get(), hWnd, &swapChainDesc, nullptr, nullptr, &swapChain1);
+	factory->CreateSwapChainForHwnd(commandQueue.Get(), hWnd, &swapChainDesc, nullptr, nullptr, &swapChain1); //why not accepting private member variable?
+
+	// convert IDXGISwapChain1 → IDXGISwapChain3
+	swapChain1.As(&swapChain);
+
+}
+
+void D3D12Module::preRender() 
+{
+	UINT backBufferIndex = swapChain->GetCurrentBackBufferIndex();
+	swapChain->GetBuffer(backBufferIndex, IID_PPV_ARGS(&backBuffer));
+
+	//PRESENT -> RENDER_TARGET
+	D3D12_RESOURCE_BARRIER barrierToRender = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	commandList->ResourceBarrier(1, &barrierToRender);
+
+}
+
+void D3D12Module::postRender() 
+{
+	//RENDER_TARGET -> PRESENT
+	D3D12_RESOURCE_BARRIER barrierToPresent = CD3DX12_RESOURCE_BARRIER::Transition(backBuffer.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	commandList->ResourceBarrier(1, &barrierToPresent);
 }

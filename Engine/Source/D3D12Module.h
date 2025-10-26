@@ -14,7 +14,8 @@ private:
 	ComPtr<ID3D12CommandQueue> commandQueue;
 	ComPtr<ID3D12CommandAllocator> commandAllocator;
 
-	ComPtr<IDXGISwapChain> swapChain;
+	ComPtr<IDXGISwapChain3> swapChain;
+	ComPtr<ID3D12Resource> backBuffer;
 
 	unsigned windowWidth = 0;
 	unsigned windowHeight = 0;
@@ -26,6 +27,11 @@ public:
 
 	bool init() override;
 	bool cleanUp() override;
+	void update() override;
+	void preRender() override;
+	void postRender() override;
+	void render() override;
+
 
 	void enableDebugLayer();
 	void createDevice();

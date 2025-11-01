@@ -1,34 +1,54 @@
 ﻿#include "Globals.h"
 #include "D3D12Module.h"
 
+// ─────────────────────────────────────────────────────────────
+//  CONSTRUCTOR / DESTRUCTOR
+// ─────────────────────────────────────────────────────────────
+
 D3D12Module::D3D12Module(HWND wnd) : hWnd(wnd)
 {
 	currentBackBufferIdx = 0;
 }
 
+// ─────────────────────────────────────────────────────────────
+//  INITIALIZATION PIPELINE
+//  SYSTEM SETUP  →  RENDER SETUP  →  READY TO DRAW
+// ─────────────────────────────────────────────────────────────
+
 bool D3D12Module::init()
 {
-	// DebugLayer
-#if defined(_DEBUG)
-	enableDebugLayer();
-#endif
-
-	// Create Device
-	createDevice();
+	// ────────────────
+	// SYSTEM SETUP
+	// ────────────────
 
 #if defined(_DEBUG)
-	setUpInfoQueue();
+	enableDebugLayer();             // Enables GPU validation layer
 #endif
 
-	createCommandQueue();
-	createSwapChain();
-	createCommandAllocator();
-	createCommandList();
-	createRenderTarget();
-	createFence();
+	createDevice();                 // Factory → Adapter → Device
+
+#if defined(_DEBUG)
+	setUpInfoQueue();               // Debug message queue
+#endif
+
+	// ────────────────
+	// RENDER SETUP
+	// ────────────────
+
+	createCommandQueue();            // "Conveyor belt" that submits work to GPU
+	createSwapChain();               // "Frame flipper" for presenting images
+	createCommandAllocator();        // Memory for recording command lists
+	createCommandList();             // "Playlist" of GPU work
+	createRenderTarget();            // "Canvas" to draw into
+	createFence();                   // "Completion flag" for CPU↔GPU sync
 
 	return true;
 }
+
+// ─────────────────────────────────────────────────────────────
+//  CLEANUP
+//  Ensures GPU has finished work before releasing resources.
+// ─────────────────────────────────────────────────────────────
 
 bool D3D12Module::cleanUp()
 {
@@ -36,11 +56,7 @@ bool D3D12Module::cleanUp()
 	{
 		// signal current fence value
 		commandQueue->Signal(fence.Get(), fenceValue);
-		if (fence->GetCompletedValue() < fenceValue)
-		{
-			fence->SetEventOnCompletion(fenceValue, fenceEvent);
-			WaitForSingleObject(fenceEvent, INFINITE);
-		}
+		waitForGPU();
 	}
 
 	if (fenceEvent)
@@ -48,6 +64,10 @@ bool D3D12Module::cleanUp()
 
 	return true;
 }
+
+// ─────────────────────────────────────────────────────────────
+//  SYSTEM SETUP IMPLEMENTATION
+// ─────────────────────────────────────────────────────────────
 
 void D3D12Module::enableDebugLayer()
 {
@@ -60,18 +80,34 @@ void D3D12Module::enableDebugLayer()
 
 void D3D12Module::createDevice()
 {
+	// DXGI Factory — the manager that finds your GPU and builds the pipeline
 #if defined(_DEBUG)
 	ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(&factory)));
 #else
 	ThrowIfFailed(CreateDXGIFactory2(0, IID_PPV_ARGS(&factory)));
 #endif
 
-	// Choose adapter
+	// Adapter — the actual GPU
 	ThrowIfFailed(factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter)));
 
-	// Create device on that adapter
+	// Device — the bridge between the app and the GPU
 	ThrowIfFailed(D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
 }
+
+void D3D12Module::setUpInfoQueue()
+{
+	ComPtr<ID3D12InfoQueue> infoQueue;
+	if (SUCCEEDED(device.As(&infoQueue)))
+	{
+		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
+		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
+	}
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDER SETUP IMPLEMENTATION
+// ─────────────────────────────────────────────────────────────
 
 void D3D12Module::createCommandQueue()
 {
@@ -96,25 +132,9 @@ void D3D12Module::createCommandList()
 {
 	// create an initially-closed command list using allocator 0
 	ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, commandAllocator[0].Get(), nullptr, IID_PPV_ARGS(&commandList)));
+
 	// command lists are created in the recording state; close it so the first Reset is explicit at frame start
 	ThrowIfFailed(commandList->Close());
-}
-
-void D3D12Module::executeCommandList()
-{
-	ID3D12CommandList* list[] = { commandList.Get() };
-	commandQueue->ExecuteCommandLists(_countof(list), list);
-}
-
-void D3D12Module::setUpInfoQueue()
-{
-	ComPtr<ID3D12InfoQueue> infoQueue;
-	if (SUCCEEDED(device.As(&infoQueue)))
-	{
-		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, TRUE);
-		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, TRUE);
-		infoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, TRUE);
-	}
 }
 
 void D3D12Module::createSwapChain()
@@ -134,41 +154,76 @@ void D3D12Module::createSwapChain()
 	}
 
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
-	swapChainDesc.Width = windowWidth;
-	swapChainDesc.Height = windowHeight;
-	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	swapChainDesc.Stereo = FALSE;
-	swapChainDesc.SampleDesc = { 1, 0 };
-	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.BufferCount = FRAMES_IN_FLIGHT;
-	swapChainDesc.Scaling = DXGI_SCALING_STRETCH;
-	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
-	swapChainDesc.Flags = 0;
+	swapChainDesc.Width = windowWidth;                           // Width of the back buffer in pixels
+	swapChainDesc.Height = windowHeight;                         // Height of the back buffer in pixels
+	swapChainDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;           // 32-bit RGBA format (8 bits per channel) - UNORM = Unsigned normalized integer (0-255 mapped to 0.0-1.0)
+	swapChainDesc.Stereo = FALSE;                                // Set to TRUE for stereoscopic 3D rendering (VR/3D Vision)
+	swapChainDesc.SampleDesc = { 1, 0 };                         // Multisampling { Count, Quality } // Count=1: No multisampling (1 sample per pixel)
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // This buffer will be used as a render target
+	swapChainDesc.BufferCount = FRAMES_IN_FLIGHT;                // Buffering
+	swapChainDesc.Scaling = DXGI_SCALING_STRETCH;                // How to scale when window size doesn't match buffer size: 
+																 // STRETCH = Stretch the image to fit the window
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;    // Modern efficient swap method:
+																 // - FLIP: Uses page flipping (no copying)
+																 // - DISCARD: Discard previous back buffer contents
+	swapChainDesc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;       // Alpha channel behavior for window blending UNSPECIFIED = Use default behavior
+	swapChainDesc.Flags = 0;                                     // Additional swap chain options: 0 = No special flags
+																 // DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH: Allow full-screen mode switches
+																 // DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING: Allow tearing in windowed mode (VSync off)
 
-	ComPtr<IDXGISwapChain1> swapChain1;
 
+	ComPtr<IDXGISwapChain1> tempSwapChain;
 	// CreateSwapChainForHwnd expects an IDXGIFactory (not factory.Get()) and the commandQueue (IUnknown*)
 	// Use AddressOf() on the ComPtr when passing an out parameter
-	HRESULT hr = factory->CreateSwapChainForHwnd(
-		commandQueue.Get(),
-		hWnd,
-		&swapChainDesc,
-		nullptr,
-		nullptr,
-		&swapChain1
-	);
+	HRESULT hr = factory->CreateSwapChainForHwnd(commandQueue.Get(), hWnd, &swapChainDesc, nullptr, nullptr, &tempSwapChain);
 	ThrowIfFailed(hr);
 
 	// Disable Alt+Enter fullscreen toggle if you don't want it (optional)
 	factory->MakeWindowAssociation(hWnd, DXGI_MWA_NO_ALT_ENTER);
 
 	// Convert to IDXGISwapChain3
-	ThrowIfFailed(swapChain1.As(&swapChain));
+	ThrowIfFailed(tempSwapChain.As(&swapChain));
 
 	// Set current back buffer index
 	currentBackBufferIdx = swapChain->GetCurrentBackBufferIndex();
 }
+
+void D3D12Module::createRenderTarget()
+{
+	// RTV heap descriptor
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+	rtvHeapDesc.NumDescriptors = FRAMES_IN_FLIGHT;
+	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	ThrowIfFailed(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap)));
+
+	UINT rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+	for (UINT i = 0; i < FRAMES_IN_FLIGHT; ++i)
+	{
+		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i])));
+		device->CreateRenderTargetView(backBuffers[i].Get(), nullptr, rtvHandle);
+		rtvHandle.Offset(1, rtvDescriptorSize);
+	}
+}
+
+void D3D12Module::createFence()
+{
+	ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
+	fenceValue = 1;
+	fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+	if (fenceEvent == nullptr)
+	{
+		ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+	}
+}
+
+// ─────────────────────────────────────────────────────────────
+//  FRAME LOOP
+//  preRender → render → postRender
+// ─────────────────────────────────────────────────────────────
+
 
 void D3D12Module::preRender()
 {
@@ -184,12 +239,8 @@ void D3D12Module::preRender()
 	// Get the back buffer resource for this index
 	ThrowIfFailed(swapChain->GetBuffer(currentBackBufferIdx, IID_PPV_ARGS(&backBuffers[currentBackBufferIdx])));
 
-	// Transition from PRESENT -> RENDER_TARGET
-	D3D12_RESOURCE_BARRIER barrierToRender = CD3DX12_RESOURCE_BARRIER::Transition(
-		backBuffers[currentBackBufferIdx].Get(),
-		D3D12_RESOURCE_STATE_PRESENT,
-		D3D12_RESOURCE_STATE_RENDER_TARGET
-	);
+	// Transition from PRESENT -> RENDER_TARGET (prepare the canvas)
+	D3D12_RESOURCE_BARRIER barrierToRender = CD3DX12_RESOURCE_BARRIER::Transition(backBuffers[currentBackBufferIdx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	commandList->ResourceBarrier(1, &barrierToRender);
 
 	// Set the RTV (and optionally DSV) so ClearRenderTargetView affects current buffer
@@ -212,57 +263,30 @@ void D3D12Module::render()
 void D3D12Module::postRender()
 {
 	// Transition RENDER_TARGET -> PRESENT
-	D3D12_RESOURCE_BARRIER barrierToPresent = CD3DX12_RESOURCE_BARRIER::Transition(
-		backBuffers[currentBackBufferIdx].Get(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET,
-		D3D12_RESOURCE_STATE_PRESENT
-	);
+	D3D12_RESOURCE_BARRIER barrierToPresent = CD3DX12_RESOURCE_BARRIER::Transition(backBuffers[currentBackBufferIdx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	commandList->ResourceBarrier(1, &barrierToPresent);
 
-	// Close and execute
+	// Close and execute the recorded commands
 	ThrowIfFailed(commandList->Close());
 	ID3D12CommandList* lists[] = { commandList.Get() };
 	commandQueue->ExecuteCommandLists(_countof(lists), lists);
 
-	// Present
+	// Present the frame
 	ThrowIfFailed(swapChain->Present(1, 0));
 
-	// Signal and wait with fence to ensure GPU finished the work for this frame.
-	// Use current fenceValue then increment.
+	// Signal and synchronize with the GPU
 	ThrowIfFailed(commandQueue->Signal(fence.Get(), fenceValue));
-
-	if (fence->GetCompletedValue() < fenceValue)
-	{
-		ThrowIfFailed(fence->SetEventOnCompletion(fenceValue, fenceEvent));
-		WaitForSingleObject(fenceEvent, INFINITE);
-	}
+	waitForGPU();
 	fenceValue++;
 
 	// After present, update the back buffer index for next frame (GetCurrentBackBufferIndex reflects next index)
 	currentBackBufferIdx = swapChain->GetCurrentBackBufferIndex();
 }
 
-void D3D12Module::createRenderTarget()
-{
-	// RTV heap
-	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-	rtvHeapDesc.NumDescriptors = FRAMES_IN_FLIGHT;
-	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-	ThrowIfFailed(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvDescriptorHeap)));
+// ─────────────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────────────
 
-	// Tamaño del incremento entre descriptores
-	UINT rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-
-	for (UINT i = 0; i < FRAMES_IN_FLIGHT; ++i)
-	{
-		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffers[i])));
-		device->CreateRenderTargetView(backBuffers[i].Get(), nullptr, rtvHandle);
-		rtvHandle.Offset(1, rtvDescriptorSize);
-	}
-}
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12Module::getRenderTargetDescriptor()
 {
@@ -272,13 +296,12 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Module::getRenderTargetDescriptor()
 	return rtvHandle;
 }
 
-void D3D12Module::createFence()
+void D3D12Module::waitForGPU()
 {
-	ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
-	fenceValue = 1;
-	fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-	if (fenceEvent == nullptr)
+	if (fence->GetCompletedValue() < fenceValue)
 	{
-		ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+		ThrowIfFailed(fence->SetEventOnCompletion(fenceValue, fenceEvent));
+		WaitForSingleObject(fenceEvent, INFINITE);
 	}
 }
+

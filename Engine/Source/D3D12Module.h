@@ -3,6 +3,13 @@
 #include "dxgi1_6.h"
 #include <stdexcept>
 
+//-----------------------------------------------------------------------------
+// D3D12Module manages the Direct3D 12 graphics device and swap chain.
+// It handles device creation, resource management, rendering synchronization,
+// window resizing, and fullscreen toggling. Provides access to core D3D12
+// objects.
+//-----------------------------------------------------------------------------
+
 class D3D12Module : public Module
 {
 private:
@@ -63,12 +70,12 @@ private:
 	void createCommandAllocator();
 	void createCommandList();
 	void createCommandQueue();
-	void executeCommandList();
 	void setUpInfoQueue();
 	void createSwapChain();
 	void createRenderTarget();
 	void createDepthStencil();
 	void createFence();
+	void waitForGPU();
 
 	inline void ThrowIfFailed(HRESULT hr)
 	{

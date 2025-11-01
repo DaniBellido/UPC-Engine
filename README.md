@@ -7,8 +7,9 @@ The **UPC Engine** is a DirectX 12 learning project provided by the **Universita
 ## 🗓️ Week 1 & 2 — DirectX 12 Initialization
 
 The goal during the first weeks was to understand the **DirectX 12 initialization pipeline** through the implementation of the `D3D12Module` class and **render a plain color on the screen**.
-
-![DirectX 12 Initialization](./learningResources/DirectX_init_image.jpg)
+<p align="center">
+  <img src="./learningResources/DirectX_init_image.jpg" alt="Introduction to 3D Game Programming with DirectX 12" width="800"/>
+</p>
 
 ---
 
@@ -25,7 +26,7 @@ Since this project is part of my ongoing study of DirectX 12 and graphics progra
 My learning process is also supported by *Frank D. Luna’s* **“Introduction to 3D Game Programming with DirectX 12”** and *Jason Gregory’s* **“Game Engine Architecture.”**
 
 <p align="center">
-  <img src="./learningResources/F.Luna_book_.jpg" alt="Introduction to 3D Game Programming with DirectX 12" width="200"/>
-  <img src="./learningResources/jGregory_book.jpg" alt="Game Engine Architecture" width="200"/>
+  <img src="./learningResources/F.Luna_book_.jpg" alt="Introduction to 3D Game Programming with DirectX 12" width="100"/>
+  <img src="./learningResources/jGregory_book.jpg" alt="Game Engine Architecture" width="100"/>
 </p>
 

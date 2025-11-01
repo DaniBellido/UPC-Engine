@@ -21,3 +21,11 @@ More updates coming soon.
 
 All images and visual materials included in this repository have been produced by myself for learning purposes.  
 Since this project is part of my ongoing study of DirectX 12 and graphics programming, some implementations or visual outputs may contain errors or inaccuracies.
+
+My learning process is also supported by *Frank D. Luna’s* **“Introduction to 3D Game Programming with DirectX 12”** and *Jason Gregory’s* **“Game Engine Architecture.”**
+
+<p align="center">
+  <img src="./learningResources/F.Luna_book_.jpg" alt="Introduction to 3D Game Programming with DirectX 12" width="200"/>
+  <img src="./learningResources/jGregory_book.jpg" alt="Game Engine Architecture" width="200"/>
+</p>
+

@@ -14,3 +14,10 @@ The goal during the first weeks was to understand the **DirectX 12 initializatio
 
 🚧 **Development in progress.**  
 More updates coming soon.
+
+---
+
+### ⚠️ Disclaimer
+
+All images and visual materials included in this repository have been produced by myself for learning purposes.  
+Since this project is part of my ongoing study of DirectX 12 and graphics programming, some implementations or visual outputs may contain errors or inaccuracies.

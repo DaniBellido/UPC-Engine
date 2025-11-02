@@ -1,42 +1,30 @@
 #pragma once
 #include "Globals.h"
 #include "Module.h"
+#include "ImGuiPass.h"
+#include "D3D12Module.h"
 
 class EditorModule : public Module
 {
 
 private:
-
+	HWND hWnd = NULL;
+	D3D12Module* d3d12 = nullptr;
+	ImGuiPass* imGuiPass = nullptr;
 
 public:
 
-	EditorModule(HWND hWnd);
+	EditorModule(HWND hWnd, D3D12Module* d3d12);
 	~EditorModule() {}
 
-	bool init() override
-	{
-		return true;
-	}
+	bool init() override;
+	//void update() override;
+	void preRender() override;
+	void postRender() override;
+	void render() override;
+	bool cleanUp() override;
 
-	void update() override
-	{
-	}
-
-	void preRender() override
-	{
-	}
-
-	void postRender() override
-	{
-	}
-
-	void render() override
-	{
-	}
-
-	bool cleanUp() override
-	{
-		return true;
-	}
+private:
+	// TODO: private methods
 };
 

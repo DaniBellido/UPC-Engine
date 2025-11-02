@@ -89,11 +89,13 @@ void ImGuiPass::startFrame()
     //ImGui::ShowDemoWindow();
 }
 
-void ImGuiPass::record(ID3D12GraphicsCommandList* commandList)
+void ImGuiPass::record(ID3D12GraphicsCommandList* commandList, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle)
 {
     BEGIN_EVENT(commandList, "ImGui Pass");
 
     ImGui::Render();
+    
+    commandList->OMSetRenderTargets(1, &cpuHandle, FALSE, nullptr);
 
     // It's not optimal but makes ImGuiPass independent from ModuleDescriptor slides
 

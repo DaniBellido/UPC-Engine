@@ -41,6 +41,7 @@ bool D3D12Module::init()
 	createCommandList();             // "Playlist" of GPU work
 	createRenderTarget();            // "Canvas" to draw into
 	createFence();                   // "Completion flag" for CPU↔GPU sync
+	getWindowSize(windowWidth, windowHeight);
 
 	return true;
 }
@@ -55,7 +56,7 @@ bool D3D12Module::cleanUp()
 	if (fence && fenceEvent)
 	{
 		// signal current fence value
-		commandQueue->Signal(fence.Get(), fenceValue);
+		commandQueue->Signal(fence.Get(), fenceValue[currentBackBufferIdx]);
 		waitForGPU();
 	}
 
@@ -64,6 +65,7 @@ bool D3D12Module::cleanUp()
 
 	return true;
 }
+
 
 // ─────────────────────────────────────────────────────────────
 //  SYSTEM SETUP IMPLEMENTATION
@@ -211,7 +213,7 @@ void D3D12Module::createRenderTarget()
 void D3D12Module::createFence()
 {
 	ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
-	fenceValue = 1;
+	fenceValue[currentBackBufferIdx] = 1;
 	fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	if (fenceEvent == nullptr)
 	{
@@ -275,9 +277,9 @@ void D3D12Module::postRender()
 	ThrowIfFailed(swapChain->Present(1, 0));
 
 	// Signal and synchronize with the GPU
-	ThrowIfFailed(commandQueue->Signal(fence.Get(), fenceValue));
+	ThrowIfFailed(commandQueue->Signal(fence.Get(), fenceValue[currentBackBufferIdx]));
 	waitForGPU();
-	fenceValue++;
+	fenceValue[currentBackBufferIdx]++;
 
 	// After present, update the back buffer index for next frame (GetCurrentBackBufferIndex reflects next index)
 	currentBackBufferIdx = swapChain->GetCurrentBackBufferIndex();
@@ -298,10 +300,59 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Module::getRenderTargetDescriptor()
 
 void D3D12Module::waitForGPU()
 {
-	if (fence->GetCompletedValue() < fenceValue)
+	if (fence->GetCompletedValue() < fenceValue[currentBackBufferIdx])
 	{
-		ThrowIfFailed(fence->SetEventOnCompletion(fenceValue, fenceEvent));
+		ThrowIfFailed(fence->SetEventOnCompletion(fenceValue[currentBackBufferIdx], fenceEvent));
 		WaitForSingleObject(fenceEvent, INFINITE);
 	}
 }
+
+// ─────────────────────────────────────────────────────────────
+//  RESIZE WINDOW
+// ─────────────────────────────────────────────────────────────
+
+void D3D12Module::getWindowSize(unsigned& width, unsigned& height)
+{
+	RECT clientRect = {};
+	GetClientRect(hWnd, &clientRect);
+
+	width = unsigned(clientRect.right - clientRect.left);
+	height = unsigned(clientRect.bottom - clientRect.top);
+}
+
+void D3D12Module::resize()
+{
+
+	unsigned width, height;
+	getWindowSize(width, height);
+
+	if (width == 0 || height == 0)
+		return;
+
+	if (width != windowWidth || height != windowHeight)
+	{
+		windowWidth = width;
+		windowHeight = height;
+
+		waitForGPU();
+
+		for (unsigned i = 0; i < FRAMES_IN_FLIGHT; ++i)
+		{
+			backBuffers[i].Reset();
+			fenceValue[i] = 0;
+		}
+
+		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+
+		ThrowIfFailed(swapChain->GetDesc(&swapChainDesc));
+		ThrowIfFailed(swapChain->ResizeBuffers(FRAMES_IN_FLIGHT, windowWidth, windowHeight, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags));
+
+		createRenderTarget();
+		//createDepthStencil();
+
+		currentBackBufferIdx = swapChain->GetCurrentBackBufferIndex();
+	}
+}
+
+
 

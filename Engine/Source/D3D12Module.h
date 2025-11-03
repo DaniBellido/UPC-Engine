@@ -32,7 +32,7 @@ private:
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap;
 
 	ComPtr<ID3D12Fence> fence;
-	UINT64 fenceValue = 0;
+	UINT fenceValue[FRAMES_IN_FLIGHT] = { 0,0,0 };
 	HANDLE fenceEvent = nullptr;
 
 	unsigned windowWidth = 0;
@@ -62,9 +62,13 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE getRenderTargetDescriptor();
 	D3D12_CPU_DESCRIPTOR_HANDLE getDepthStencilDescriptor();
 
+	void resize();
+	void waitForGPU();
+
 
 
 private:
+	void getWindowSize(unsigned& width, unsigned& height);
 	void enableDebugLayer();
 	void createDevice();
 	void createCommandAllocator();
@@ -75,7 +79,7 @@ private:
 	void createRenderTarget();
 	void createDepthStencil();
 	void createFence();
-	void waitForGPU();
+	
 
 	inline void ThrowIfFailed(HRESULT hr)
 	{

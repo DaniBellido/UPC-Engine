@@ -7,7 +7,7 @@
 
 D3D12Module::D3D12Module(HWND wnd) : hWnd(wnd)
 {
-	currentBackBufferIdx = 0;
+
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -22,26 +22,27 @@ bool D3D12Module::init()
 	// ────────────────
 
 #if defined(_DEBUG)
-	enableDebugLayer();             // Enables GPU validation layer
+	enableDebugLayer();							// Enables GPU validation layer
 #endif
 
-	createDevice();                 // Factory → Adapter → Device
+	createDevice();								// Factory → Adapter → Device
 
 #if defined(_DEBUG)
-	setUpInfoQueue();               // Debug message queue
+	setUpInfoQueue();							// Debug message queue
 #endif
 
 	// ────────────────
 	// RENDER SETUP
 	// ────────────────
 
-	createCommandQueue();            // "Conveyor belt" that submits work to GPU
-	createSwapChain();               // "Frame flipper" for presenting images
-	createCommandAllocator();        // Memory for recording command lists
-	createCommandList();             // "Playlist" of GPU work
-	createRenderTarget();            // "Canvas" to draw into
-	createFence();                   // "Completion flag" for CPU↔GPU sync
+	createCommandQueue();						// "Conveyor belt" that submits work to GPU
+	createSwapChain();							// "Frame flipper" for presenting images
+	createCommandAllocator();					// Memory for recording command lists
+	createCommandList();						// "Playlist" of GPU work
+	createRenderTarget();						// "Canvas" to draw into
+	createFence();								// "Completion flag" for CPU↔GPU sync
 	getWindowSize(windowWidth, windowHeight);
+	resize();
 
 	return true;
 }
@@ -53,15 +54,9 @@ bool D3D12Module::init()
 
 bool D3D12Module::cleanUp()
 {
-	if (fence && fenceEvent)
-	{
-		// signal current fence value
-		commandQueue->Signal(fence.Get(), fenceValue[currentBackBufferIdx]);
-		waitForGPU();
-	}
-
 	if (fenceEvent)
 		CloseHandle(fenceEvent);
+	fenceEvent = NULL;
 
 	return true;
 }
@@ -300,11 +295,10 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Module::getRenderTargetDescriptor()
 
 void D3D12Module::waitForGPU()
 {
-	if (fence->GetCompletedValue() < fenceValue[currentBackBufferIdx])
-	{
-		ThrowIfFailed(fence->SetEventOnCompletion(fenceValue[currentBackBufferIdx], fenceEvent));
-		WaitForSingleObject(fenceEvent, INFINITE);
-	}
+	commandQueue->Signal(fence.Get(), ++fenceCounter);
+
+	fence->SetEventOnCompletion(fenceCounter, fenceEvent);
+	WaitForSingleObject(fenceEvent, INFINITE);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -313,6 +307,7 @@ void D3D12Module::waitForGPU()
 
 void D3D12Module::getWindowSize(unsigned& width, unsigned& height)
 {
+	// Create a RECT structure to hold the boundaries of the window's client area.
 	RECT clientRect = {};
 	GetClientRect(hWnd, &clientRect);
 
@@ -326,9 +321,7 @@ void D3D12Module::resize()
 	unsigned width, height;
 	getWindowSize(width, height);
 
-	if (width == 0 || height == 0)
-		return;
-
+	// Only continue if the size has actually changed
 	if (width != windowWidth || height != windowHeight)
 	{
 		windowWidth = width;
@@ -336,16 +329,17 @@ void D3D12Module::resize()
 
 		waitForGPU();
 
+		// Release the old back buffers and reset synchronization values
 		for (unsigned i = 0; i < FRAMES_IN_FLIGHT; ++i)
 		{
 			backBuffers[i].Reset();
 			fenceValue[i] = 0;
 		}
 
+		// Resize the swap chain's buffers to the new dimensions
 		DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
-
-		ThrowIfFailed(swapChain->GetDesc(&swapChainDesc));
-		ThrowIfFailed(swapChain->ResizeBuffers(FRAMES_IN_FLIGHT, windowWidth, windowHeight, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags));
+		swapChain->GetDesc(&swapChainDesc);
+		swapChain->ResizeBuffers(FRAMES_IN_FLIGHT, windowWidth, windowHeight, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags);
 
 		createRenderTarget();
 		//createDepthStencil();

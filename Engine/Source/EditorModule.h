@@ -11,6 +11,8 @@ private:
 	HWND hWnd = NULL;
 	D3D12Module* d3d12 = nullptr;
 	ImGuiPass* imGuiPass = nullptr;
+	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {};
+	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {};
 
 public:
 

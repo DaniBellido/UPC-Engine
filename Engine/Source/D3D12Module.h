@@ -34,6 +34,7 @@ private:
 	ComPtr<ID3D12Fence> fence;
 	UINT fenceValue[FRAMES_IN_FLIGHT] = { 0,0,0 };
 	HANDLE fenceEvent = nullptr;
+	unsigned fenceCounter = 0;
 
 	unsigned windowWidth = 0;
 	unsigned windowHeight = 0;

@@ -16,6 +16,8 @@ private:
 
 public:
 
+
+
 	EditorModule(HWND hWnd, D3D12Module* d3d12);
 	~EditorModule() {}
 

@@ -1,0 +1,198 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="DebugDrawPass.cpp">
+      <Filter>Passes\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGuiPass.cpp">
+      <Filter>Passes\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdParty\imgui-docking\imgui.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdParty\imgui-docking\imgui_demo.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdParty\imgui-docking\imgui_draw.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdParty\imgui-docking\backends\imgui_impl_dx12.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdParty\imgui-docking\backends\imgui_impl_win32.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdParty\imgui-docking\imgui_tables.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdParty\imgui-docking\imgui_widgets.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdParty\ImGuizmo\ImGuizmo.cpp">
+      <Filter>imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="Application.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="GamePad.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Globals.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Keyboard.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Mouse.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="SimpleMath.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ModuleInput.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorModule.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12Module.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="ConsoleModule.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="framework.h">
+      <Filter>Win</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Win</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>Win</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugDrawPass.h">
+      <Filter>Passes\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiPass.h">
+      <Filter>Passes\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdParty\imgui-docking\imgui.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdParty\imgui-docking\backends\imgui_impl_dx12.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdParty\imgui-1.89.8\backends\imgui_impl_win32.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdParty\imgui-docking\backends\imgui_impl_win32.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdParty\imgui-docking\imgui_internal.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdParty\ImGuizmo\ImGuizmo.h">
+      <Filter>imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="debug_draw.hpp">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Application.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="GamePad.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Globals.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Keyboard.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Mouse.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="PlatformHelpers.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ReadData.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="SimpleMath.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ModuleInput.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="Module.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorModule.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12Module.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="ConsoleModule.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Engine.ico">
+      <Filter>Win</Filter>
+    </Image>
+    <Image Include="small.ico">
+      <Filter>Win</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Core">
+      <UniqueIdentifier>{c19740ed-50ca-4210-bd50-359beaacb8e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{0cf7e616-8581-445a-996b-0342eb584484}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Modules">
+      <UniqueIdentifier>{e897266f-edf8-47d2-882f-7e64de2d38e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Passes">
+      <UniqueIdentifier>{e66c9b5b-7e46-4f6d-b257-851c56d33ac1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{0cf1df36-de95-4226-810e-320a8a33ce91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{74af4ad2-8e37-4e4f-a9ea-ff20b0b6a49f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Win">
+      <UniqueIdentifier>{7cdfe845-cad5-4d38-b456-9efb71d143fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\IBL">
+      <UniqueIdentifier>{863cbbcb-c9e0-4086-bec8-00d9bf2721fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Passes\Debug">
+      <UniqueIdentifier>{f22ce2de-796a-4590-bd93-b757bf2228c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Passes\IBL">
+      <UniqueIdentifier>{80217720-0c3a-42aa-837a-5ee45e12bccf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Engine.rc">
+      <Filter>Win</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="SimpleMath.inl">
+      <Filter>Core</Filter>
+    </None>
+  </ItemGroup>
+</Project>

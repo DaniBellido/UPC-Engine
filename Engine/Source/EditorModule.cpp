@@ -27,7 +27,7 @@ void EditorModule::preRender()
     //  DISPLAYING A COSOLE WINDOW
     // ─────────────────────────────────────────────────────────────
 
-    // 🎨 Custom style: metallic purple header + dark gray background
+    // Custom style: metallic purple header + dark gray background
     ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.35f, 0.25f, 0.55f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.45f, 0.35f, 0.65f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.35f, 0.25f, 0.55f, 1.0f));

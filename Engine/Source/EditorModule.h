@@ -3,24 +3,22 @@
 #include "Module.h"
 #include "ImGuiPass.h"
 #include "D3D12Module.h"
+#include "ConsoleModule.h"
 
 class EditorModule : public Module
 {
 
 private:
 	HWND hWnd = NULL;
+
 	D3D12Module* d3d12 = nullptr;
 	ImGuiPass* imGuiPass = nullptr;
+	ConsoleModule* console = nullptr;
+
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {};
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {};
 
-	static bool showInfo;
-	static bool showWarnings;
-	static bool showErrors;
-
 public:
-
-
 
 	EditorModule(HWND hWnd, D3D12Module* d3d12);
 	~EditorModule() {}

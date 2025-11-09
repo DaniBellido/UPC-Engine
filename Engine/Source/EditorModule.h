@@ -14,6 +14,10 @@ private:
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {};
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {};
 
+	static bool showInfo;
+	static bool showWarnings;
+	static bool showErrors;
+
 public:
 
 

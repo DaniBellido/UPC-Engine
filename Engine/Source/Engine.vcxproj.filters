@@ -64,6 +64,9 @@
     <ClCompile Include="ConsoleModule.cpp">
       <Filter>Modules</Filter>
     </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>Logger</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -144,6 +147,9 @@
     <ClInclude Include="ConsoleModule.h">
       <Filter>Modules</Filter>
     </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Logger</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">
@@ -183,6 +189,9 @@
     </Filter>
     <Filter Include="Passes\IBL">
       <UniqueIdentifier>{80217720-0c3a-42aa-837a-5ee45e12bccf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Logger">
+      <UniqueIdentifier>{97761828-c229-4179-ac50-09a4287b84b4}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

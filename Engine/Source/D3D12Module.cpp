@@ -44,6 +44,10 @@ bool D3D12Module::init()
 	getWindowSize(windowWidth, windowHeight);
 	resize();
 
+	Logger::Log("It's working");
+	Logger::Err("This is an error");
+	Logger::Warn("This is a warning");
+
 	return true;
 }
 
@@ -250,8 +254,8 @@ void D3D12Module::render()
 	// Get render descriptor
 	auto rtvHandle = getRenderTargetDescriptor();
 
-	// Red RGBA (1.0f, 0.0f, 0.0f, 1.0f)
-	const float clearColor[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+	// RGBA (1.0f, 0.0f, 0.0f, 1.0f)
+	const float clearColor[] = { 0.6039f, 0.2353f, 0.9098f, 1.0f };
 
 	// Clear the current RTV
 	commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);

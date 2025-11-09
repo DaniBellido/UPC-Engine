@@ -2,6 +2,9 @@
 #include "EditorModule.h"
 #include "D3D12Module.h"
 
+bool EditorModule::showInfo = true;
+bool EditorModule::showWarnings = true;
+bool EditorModule::showErrors = true;
 
 EditorModule::EditorModule(HWND hWnd, D3D12Module* d3d12)
 {
@@ -37,31 +40,39 @@ void EditorModule::preRender()
     {
         if (ImGui::Button("All"))
         {
-            // TODO: Show all log messages
+            showInfo = true;
+            showWarnings = true;
+            showErrors = true;
         }
 
         ImGui::SameLine();
         if (ImGui::Button("Messages"))
         {
-            ImGui::TextUnformatted("HI");
+            showInfo = true;
+            showWarnings = false;
+            showErrors = false;
         }
 
         ImGui::SameLine();
         if (ImGui::Button("Warnings"))
         {
-            ImGui::TextUnformatted("WARNING");
+            showInfo = false;
+            showWarnings = true;
+            showErrors = false;
         }
 
         ImGui::SameLine();
         if (ImGui::Button("Errors"))
         {
-            ImGui::TextUnformatted("ERROR");
+            showInfo = false;
+            showWarnings = false;
+            showErrors = true;
         }
 
         ImGui::SameLine();
         if (ImGui::Button("Clear"))
         {
-            // TODO: Clear the console log buffer
+            Logger::Clear();
         }
 
         ImGui::SameLine();
@@ -95,12 +106,31 @@ void EditorModule::preRender()
         // ===========================
         //  LOG OUTPUT REGION
         // ===========================
+
+        const auto& logs = Logger::GetMessages();
+
         ImGui::BeginChild("LogRegion", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
         {
-            // TODO: Display log messages here using ImGui::TextUnformatted()
-            // Example: for (const auto& msg : logBuffer) ImGui::TextUnformatted(msg.c_str());
-            // TODO: Apply color per log type (Info/Warning/Error)
-            // TODO: Implement auto-scroll if enabled
+            for (const auto& entry : logs)
+            {
+                // Filter by type
+                if ((entry.type == LOG_INFO && !showInfo) ||
+                    (entry.type == LOG_WARNING && !showWarnings) ||
+                    (entry.type == LOG_ERROR && !showErrors))
+                    continue;
+
+                // Color by type
+                switch (entry.type)
+                {
+                case LOG_INFO:    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(180, 255, 180, 255)); break;
+                case LOG_WARNING: ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 150, 255)); break;
+                case LOG_ERROR:   ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 100, 100, 255)); break;
+                }
+
+                std::string formatted = entry.message;
+                ImGui::TextUnformatted(formatted.c_str());
+                ImGui::PopStyleColor();
+            }
         }
         ImGui::EndChild();
     }

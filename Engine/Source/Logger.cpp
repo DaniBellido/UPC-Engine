@@ -7,9 +7,6 @@
 #include <iomanip>  // For setw and setfill
 #include <sstream> // for std::stringstream
 
-#define RESET   "\033[0m"
-#define RED     "\033[31m"
-#define GREEN   "\033[32m"
 
 std::vector<LogEntry> Logger::messages;
 
@@ -45,8 +42,6 @@ void Logger::Log(const std::string& message)
     logEntry.type = LOG_INFO;
     logEntry.message = newMessage;
 
-    std::cout << GREEN << logEntry.message << RESET << std::endl;
-
     messages.push_back(logEntry);
 }
 
@@ -58,8 +53,6 @@ void Logger::Err(const std::string& message)
     logEntry.type = LOG_ERROR;
     logEntry.message = newMessage;
 
-    std::cerr << RED << logEntry.message << RESET << std::endl;
-
     messages.push_back(logEntry);
 
 }
@@ -69,10 +62,13 @@ void Logger::Warn(const std::string& message)
     std::string newMessage = "[WAR]: " + getTime() + " - " + message;
 
     LogEntry logEntry;
-    logEntry.type = LOG_ERROR;
+    logEntry.type = LOG_WARNING;
     logEntry.message = newMessage;
 
-    std::cerr << RED << logEntry.message << RESET << std::endl;
-
     messages.push_back(logEntry);
+}
+
+void Logger::Clear()
+{
+    messages.clear();
 }

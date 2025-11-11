@@ -31,6 +31,7 @@ public:
 	bool cleanUp() override;
 
 private:
-	// TODO: private methods
+	void createDockSpace();
+	void DrawToolbar();
 };
 

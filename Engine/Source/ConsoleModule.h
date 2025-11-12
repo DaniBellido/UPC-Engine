@@ -18,6 +18,7 @@ private:
 	static bool showInfo;
 	static bool showWarnings;
 	static bool showErrors;
+    bool visible = true;
 
 public:
 
@@ -29,6 +30,9 @@ public:
     void render() override {}
     void postRender() override {}
     bool cleanUp() override;
+
+    bool isVisible() const { return visible; }
+    void setVisible(bool value) { visible = value; }
 
 };
 

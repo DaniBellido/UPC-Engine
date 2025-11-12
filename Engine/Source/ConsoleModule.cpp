@@ -26,13 +26,16 @@ bool ConsoleModule::init()
 //-----------------------------------------------------------------------------
 void ConsoleModule::preRender()
 {
+    if (!visible)
+        return;
+
     // Apply custom window colors for a distinctive visual style
     ImGui::PushStyleColor(ImGuiCol_TitleBg, ImVec4(0.35f, 0.25f, 0.55f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_TitleBgActive, ImVec4(0.45f, 0.35f, 0.65f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, ImVec4(0.35f, 0.25f, 0.55f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.12f, 0.12f, 0.12f, 1.0f));
 
-    ImGui::Begin("Console");
+    ImGui::Begin("Console", &visible);
 
     //-------------------------------------------------------------------------
    // Filtering buttons

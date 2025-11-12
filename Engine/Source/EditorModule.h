@@ -32,6 +32,6 @@ public:
 
 private:
 	void createDockSpace();
-	void DrawToolbar();
+	void drawToolbar();
 };
 

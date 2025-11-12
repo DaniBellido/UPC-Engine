@@ -23,13 +23,13 @@ void EditorModule::preRender()
 {
 	imGuiPass->startFrame();
     createDockSpace();
-	console->preRender();
+	drawToolbar();
+	if (console->isVisible())
+		console->preRender();
 
 	//----------------------
 	// TEST
 	//----------------------
-
-	DrawToolbar();
 	ImGui::Begin("Scene");
 
 	ImVec2 cursorPos = ImGui::GetCursorScreenPos();
@@ -119,9 +119,8 @@ void EditorModule::createDockSpace()
 
 static bool showAboutWindow = false;
 
-void EditorModule::DrawToolbar()
+void EditorModule::drawToolbar()
 {
-	// Menú principal (toolbar superior)
 	if (ImGui::BeginMainMenuBar())
 	{
 		// --- File ---
@@ -138,7 +137,8 @@ void EditorModule::DrawToolbar()
 		// --- View ---
 		if (ImGui::BeginMenu("View"))
 		{
-			if (ImGui::MenuItem("Show Console")) { /* toggle console */ }
+			bool visible = console->isVisible();
+			if (ImGui::MenuItem("Show Console", nullptr, visible)) { console->setVisible(!visible); }
 			if (ImGui::MenuItem("Show Scene")) { /* toggle scene */ }
 			ImGui::EndMenu();
 		}

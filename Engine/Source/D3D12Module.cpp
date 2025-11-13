@@ -40,9 +40,12 @@ bool D3D12Module::init()
 	createCommandAllocator();					// Memory for recording command lists
 	createCommandList();						// "Playlist" of GPU work
 	createRenderTarget();						// "Canvas" to draw into
+	createSceneRenderTarget();
 	createFence();								// "Completion flag" for CPU↔GPU sync
 	getWindowSize(windowWidth, windowHeight);
 	resize();
+
+
 
 	Logger::Log("It's working");
 	Logger::Err("This is an error");
@@ -247,6 +250,27 @@ void D3D12Module::preRender()
 	// Set the RTV (and optionally DSV) so ClearRenderTargetView affects current buffer
 	auto rtvHandle = getRenderTargetDescriptor();
 	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
+	//--------------------------------------------------------------------------
+	// PIN8
+	//currentBackBufferIdx = swapChain->GetCurrentBackBufferIndex();
+	//ThrowIfFailed(commandAllocator[currentBackBufferIdx]->Reset());
+	//ThrowIfFailed(commandList->Reset(commandAllocator[currentBackBufferIdx].Get(), nullptr));
+
+	//// Transición: escena → render target
+	//D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+	//	sceneRenderTarget.Get(),
+	//	D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+	//	D3D12_RESOURCE_STATE_RENDER_TARGET
+	//);
+	//commandList->ResourceBarrier(1, &barrier);
+
+	//// RTV para el render de escena
+	//auto sceneRTV = sceneRTVHeap->GetCPUDescriptorHandleForHeapStart();
+	//commandList->OMSetRenderTargets(1, &sceneRTV, FALSE, nullptr);
+
+	//const float clearColor[] = { 0.6039f, 0.2353f, 0.9098f, 1.0f };
+	//commandList->ClearRenderTargetView(sceneRTV, clearColor, 0, nullptr);
 }
 
 void D3D12Module::render()
@@ -282,6 +306,20 @@ void D3D12Module::postRender()
 
 	// After present, update the back buffer index for next frame (GetCurrentBackBufferIndex reflects next index)
 	currentBackBufferIdx = swapChain->GetCurrentBackBufferIndex();
+
+	//--------------------------------------------------------------------------
+	//PIN8
+	/*D3D12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+		sceneRenderTarget.Get(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+	);
+	commandList->ResourceBarrier(1, &barrier);
+
+	ThrowIfFailed(commandList->Close());
+	ID3D12CommandList* lists[] = { commandList.Get() };
+	commandQueue->ExecuteCommandLists(_countof(lists), lists);*/
+
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -352,5 +390,72 @@ void D3D12Module::resize()
 	}
 }
 
+void D3D12Module::createSceneRenderTarget()
+{
+	// 1. Crear textura 2D donde renderizarás la escena
+	D3D12_RESOURCE_DESC texDesc = {};
+	texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	texDesc.Alignment = 0;
+	texDesc.Width = windowWidth;
+	texDesc.Height = windowHeight;
+	texDesc.DepthOrArraySize = 1;
+	texDesc.MipLevels = 1;
+	texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	texDesc.SampleDesc.Count = 1;
+	texDesc.SampleDesc.Quality = 0;
+	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+	D3D12_CLEAR_VALUE clearValue = {};
+	clearValue.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	// Match the clear color used in preRender/render (purple)
+	clearValue.Color[0] = 0.6039f;
+	clearValue.Color[1] = 0.2353f;
+	clearValue.Color[2] = 0.9098f;
+	clearValue.Color[3] = 1.0f;
+
+	CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+
+	ThrowIfFailed(device->CreateCommittedResource(
+		&heapProps,                             // ✅ ahora sí es un l-value real
+		D3D12_HEAP_FLAG_NONE,
+		&texDesc,
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		&clearValue,
+		IID_PPV_ARGS(&sceneRenderTarget)
+	));
+	sceneRenderTarget->SetName(L"SceneRenderTarget");
+
+	// 2. Crear heap RTV
+	D3D12_DESCRIPTOR_HEAP_DESC rtvDesc = {};
+	rtvDesc.NumDescriptors = 1;
+	rtvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	ThrowIfFailed(device->CreateDescriptorHeap(&rtvDesc, IID_PPV_ARGS(&sceneRTVHeap)));
+	sceneRTVHeap->SetName(L"SceneRTVHeap");
+
+	D3D12_RENDER_TARGET_VIEW_DESC rtvView = {};
+	rtvView.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	rtvView.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvView.Texture2D.MipSlice = 0;
+	device->CreateRenderTargetView(sceneRenderTarget.Get(), &rtvView, sceneRTVHeap->GetCPUDescriptorHandleForHeapStart());
+
+	// 3. Crear heap SRV (shader visible)
+	D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
+	srvDesc.NumDescriptors = 1;
+	srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	ThrowIfFailed(device->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&sceneSRVHeap)));
+	sceneSRVHeap->SetName(L"SceneSRVHeap");
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvView = {};
+	srvView.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvView.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvView.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvView.Texture2D.MostDetailedMip = 0;
+	srvView.Texture2D.MipLevels = 1;
+	srvView.Texture2D.ResourceMinLODClamp = 0.0f;
+	device->CreateShaderResourceView(sceneRenderTarget.Get(), &srvView, sceneSRVHeap->GetCPUDescriptorHandleForHeapStart());
+}
 
 

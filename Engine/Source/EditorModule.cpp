@@ -13,8 +13,12 @@ EditorModule::EditorModule(HWND hWnd, D3D12Module* d3d12)
 bool EditorModule::init() 
 {
 	imGuiPass = new ImGuiPass(d3d12->getDevice(), hWnd, cpuHandle, gpuHandle);
+
 	console = new ConsoleModule();
 	console->init();
+
+	viewport = new ViewportModule(hWnd, d3d12);
+	viewport->init();
 
 	return true;
 }
@@ -24,20 +28,13 @@ void EditorModule::preRender()
 	imGuiPass->startFrame();
     createDockSpace();
 	drawToolbar();
+
 	if (console->isVisible())
 		console->preRender();
 
-	//----------------------
-	// TEST
-	//----------------------
-	ImGui::Begin("Scene");
+	if (viewport->isVisible())
+		viewport->preRender();
 
-	ImVec2 cursorPos = ImGui::GetCursorScreenPos();
-
-	ImGui::End();
-	//----------------------
-	// END TEST
-	//----------------------
 
 }
 
@@ -54,7 +51,9 @@ void EditorModule::postRender()
 bool EditorModule::cleanUp()
 {
 	console->cleanUp();
+	viewport->cleanUp();
 	delete console;
+	delete viewport;
 	delete imGuiPass;
 	return true;
 }
@@ -137,9 +136,10 @@ void EditorModule::drawToolbar()
 		// --- View ---
 		if (ImGui::BeginMenu("View"))
 		{
-			bool visible = console->isVisible();
-			if (ImGui::MenuItem("Show Console", nullptr, visible)) { console->setVisible(!visible); }
-			if (ImGui::MenuItem("Show Scene")) { /* toggle scene */ }
+			bool showConsole = console->isVisible();
+			bool showViewport = viewport->isVisible();
+			if (ImGui::MenuItem("Show Console", nullptr, showConsole)) { console->setVisible(!showConsole); }
+			if (ImGui::MenuItem("Show Viewport", nullptr, showViewport)) { viewport->setVisible(!showViewport); }
 			ImGui::EndMenu();
 		}
 

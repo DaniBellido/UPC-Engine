@@ -4,6 +4,7 @@
 #include "ImGuiPass.h"
 #include "D3D12Module.h"
 #include "ConsoleModule.h"
+#include "ViewportModule.h"
 
 class EditorModule : public Module
 {
@@ -14,9 +15,11 @@ private:
 	D3D12Module* d3d12 = nullptr;
 	ImGuiPass* imGuiPass = nullptr;
 	ConsoleModule* console = nullptr;
+	ViewportModule* viewport = nullptr;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {};
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {};
+
 
 public:
 

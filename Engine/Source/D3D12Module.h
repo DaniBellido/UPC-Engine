@@ -59,12 +59,26 @@ public:
 	ID3D12CommandAllocator* getCommandAllocator() { return commandAllocator[currentBackBufferIdx].Get(); }
 	ID3D12Resource* getBackBuffer() { return backBuffers[currentBackBufferIdx].Get(); }
 	ID3D12CommandQueue* getCommandQueue() { return commandQueue.Get(); }
+	ID3D12DescriptorHeap* getRtvDescriptorHeap() { return rtvDescriptorHeap.Get(); }
+	ID3D12DescriptorHeap* getDsvDescriptorHeap() { return dsvDescriptorHeap.Get(); }
 
 	D3D12_CPU_DESCRIPTOR_HANDLE getRenderTargetDescriptor();
 	D3D12_CPU_DESCRIPTOR_HANDLE getDepthStencilDescriptor();
 
 	void resize();
 	void waitForGPU();
+
+	//--------------------------------------------------------
+	//PIN8
+	unsigned getWindowWidth() const { return windowWidth; }
+	unsigned getWindowHeight() const { return windowHeight; }
+
+	ComPtr<ID3D12Resource> sceneRenderTarget;
+	ComPtr<ID3D12DescriptorHeap> sceneRTVHeap;
+	ComPtr<ID3D12DescriptorHeap> sceneSRVHeap;
+
+
+	D3D12_GPU_DESCRIPTOR_HANDLE getSceneSRVGpuHandle() const { return sceneSRVHeap->GetGPUDescriptorHandleForHeapStart(); }
 
 
 
@@ -80,6 +94,8 @@ private:
 	void createRenderTarget();
 	void createDepthStencil();
 	void createFence();
+
+	void createSceneRenderTarget();
 	
 
 	inline void ThrowIfFailed(HRESULT hr)

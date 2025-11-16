@@ -18,6 +18,7 @@ bool ResourcesModule::init()
 	device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 	device->CreateCommandList1(0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&commandList));
 	commandList->Reset(commandAllocator.Get(), nullptr);
+	commandList->Close();
 
 	return true;
 }
@@ -37,7 +38,7 @@ ComPtr<ID3D12Resource> ResourcesModule::createUploadBuffer(const void* data, siz
 {
 	D3D12Module* d3d12 = app->getD3D12();
 	ID3D12Device2* device = d3d12->getDevice();
-	ID3D12CommandQueue* queue = d3d12->getCommandQueue();
+	//ID3D12CommandQueue* queue = d3d12->getCommandQueue();  <<<<<<  Not used
 
 	ComPtr<ID3D12Resource> buffer;
 

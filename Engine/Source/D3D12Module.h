@@ -95,7 +95,6 @@ private:
 	void createDepthStencil();
 	void createFence();
 
-	void createSceneRenderTarget();
 	
 
 	inline void ThrowIfFailed(HRESULT hr)

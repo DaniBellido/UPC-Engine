@@ -26,7 +26,7 @@ bool EditorModule::init()
 void EditorModule::preRender()
 {
 	imGuiPass->startFrame();
-    createDockSpace();
+    //createDockSpace();
 	drawToolbar();
 
 	if (console->isVisible())

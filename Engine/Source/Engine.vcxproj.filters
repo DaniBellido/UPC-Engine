@@ -70,6 +70,9 @@
     <ClCompile Include="ViewportModule.cpp">
       <Filter>Modules</Filter>
     </ClCompile>
+    <ClCompile Include="ResourcesModule.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -154,6 +157,9 @@
       <Filter>Logger</Filter>
     </ClInclude>
     <ClInclude Include="ViewportModule.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="ResourcesModule.h">
       <Filter>Modules</Filter>
     </ClInclude>
   </ItemGroup>

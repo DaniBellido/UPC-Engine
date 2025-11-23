@@ -1,10 +1,14 @@
 #pragma once
 #include "Module.h"
 #include "D3D12Module.h"
+#include "Exercise1.h"
+
 class ExerciseModule : public Module
 {
 private:
 	D3D12Module* d3d12 = nullptr;
+
+	Exercise1* exe1 = nullptr;
 
 public:
 	ExerciseModule(D3D12Module* d3d12);
@@ -14,7 +18,8 @@ public:
 	bool cleanUp() override;
 	void render() override;
 
-	void Exercise1();
+	void exercise1();
+	void exercise2();
 
 };
 

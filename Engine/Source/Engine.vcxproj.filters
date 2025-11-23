@@ -73,7 +73,10 @@
     <ClCompile Include="ResourcesModule.cpp">
       <Filter>Modules</Filter>
     </ClCompile>
-    <ClCompile Include="ExerciseModule.cpp" />
+    <ClCompile Include="ExerciseModule.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="Exercise1.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -163,7 +166,10 @@
     <ClInclude Include="ResourcesModule.h">
       <Filter>Modules</Filter>
     </ClInclude>
-    <ClInclude Include="ExerciseModule.h" />
+    <ClInclude Include="ExerciseModule.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="Exercise1.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">
@@ -206,6 +212,9 @@
     </Filter>
     <Filter Include="Logger">
       <UniqueIdentifier>{97761828-c229-4179-ac50-09a4287b84b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Exercises">
+      <UniqueIdentifier>{5ec979fb-def0-4b33-a61a-5b9024ed1403}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

@@ -71,7 +71,7 @@ void EditorModule::render()
 	switch (currentExercise)
 	{
 	case ExerciseSelection::Exercise1:
-		exercise->Exercise1();
+		exercise->exercise1();
 		break;
 
 	case ExerciseSelection::Exercise2:
@@ -230,7 +230,7 @@ void EditorModule::drawExerciseMenu()
 	ImGui::Text("Select an exercise:");
 	ImGui::Separator();
 
-	if (ImGui::Selectable("Exercise 1: Red Screen", currentExercise == ExerciseSelection::Exercise1))
+	if (ImGui::Selectable("Exercise 1: Background Color", currentExercise == ExerciseSelection::Exercise1))
 	{
 		currentExercise = ExerciseSelection::Exercise1;
 	}

@@ -5,6 +5,7 @@
 #include "D3D12Module.h"
 #include "ConsoleModule.h"
 #include "ViewportModule.h"
+#include "ExerciseModule.h"
 
 class EditorModule : public Module
 {
@@ -16,9 +17,14 @@ private:
 	ImGuiPass* imGuiPass = nullptr;
 	ConsoleModule* console = nullptr;
 	ViewportModule* viewport = nullptr;
+	ExerciseModule* exercise = nullptr;
 
 	D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = {};
 	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = {};
+
+
+	bool showExercisesWindow = true;
+
 
 
 public:
@@ -36,5 +42,6 @@ public:
 private:
 	void createDockSpace();
 	void drawToolbar();
+	void drawExerciseMenu();
 };
 

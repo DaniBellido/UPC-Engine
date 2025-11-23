@@ -239,9 +239,6 @@ void D3D12Module::preRender()
 	// Reset the command list to start recording commands for this frame
 	ThrowIfFailed(commandList->Reset(commandAllocator[currentBackBufferIdx].Get(), nullptr));
 
-	// Get the back buffer resource for this index
-	ThrowIfFailed(swapChain->GetBuffer(currentBackBufferIdx, IID_PPV_ARGS(&backBuffers[currentBackBufferIdx])));
-
 	// Transition from PRESENT -> RENDER_TARGET (prepare the canvas)
 	D3D12_RESOURCE_BARRIER barrierToRender = CD3DX12_RESOURCE_BARRIER::Transition(backBuffers[currentBackBufferIdx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	commandList->ResourceBarrier(1, &barrierToRender);
@@ -252,17 +249,6 @@ void D3D12Module::preRender()
 
 }
 
-void D3D12Module::render()
-{
-	// Get render descriptor
-	auto rtvHandle = getRenderTargetDescriptor();
-
-	// RGBA (1.0f, 0.0f, 0.0f, 1.0f)
-	const float clearColor[] = { 0.6039f, 0.2353f, 0.9098f, 1.0f };
-
-	// Clear the current RTV
-	commandList->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-}
 
 void D3D12Module::postRender()
 {

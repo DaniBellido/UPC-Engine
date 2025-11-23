@@ -47,10 +47,8 @@ public:
 
 	bool init() override;
 	bool cleanUp() override;
-	//void update() override;
 	void preRender() override;
 	void postRender() override;
-	void render() override;
 
 	HWND getHWnd() { return hWnd; }
 	IDXGISwapChain3* getSwapChain() { return swapChain.Get(); }
@@ -72,13 +70,6 @@ public:
 	//PIN8
 	unsigned getWindowWidth() const { return windowWidth; }
 	unsigned getWindowHeight() const { return windowHeight; }
-
-	ComPtr<ID3D12Resource> sceneRenderTarget;
-	ComPtr<ID3D12DescriptorHeap> sceneRTVHeap;
-	ComPtr<ID3D12DescriptorHeap> sceneSRVHeap;
-
-
-	D3D12_GPU_DESCRIPTOR_HANDLE getSceneSRVGpuHandle() const { return sceneSRVHeap->GetGPUDescriptorHandleForHeapStart(); }
 
 
 

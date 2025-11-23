@@ -4,6 +4,7 @@
 #include "D3D12Module.h"
 #include "EditorModule.h"
 #include "ResourcesModule.h"
+#include "ExerciseModule.h"
 
 
 
@@ -13,8 +14,13 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
 
     modules.push_back(new ModuleInput((HWND)hWnd));
     modules.push_back(d3d12);
-    modules.push_back(new EditorModule((HWND)hWnd, d3d12));
     modules.push_back(new ResourcesModule());
+
+
+    // Rendering exercises
+    modules.push_back(new ExerciseModule(d3d12));
+    // Last Module to be pushed must be the Editor Module
+    modules.push_back(new EditorModule((HWND)hWnd, d3d12));
 }
 
 Application::~Application()

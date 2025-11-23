@@ -73,6 +73,7 @@
     <ClCompile Include="ResourcesModule.cpp">
       <Filter>Modules</Filter>
     </ClCompile>
+    <ClCompile Include="ExerciseModule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -162,6 +163,7 @@
     <ClInclude Include="ResourcesModule.h">
       <Filter>Modules</Filter>
     </ClInclude>
+    <ClInclude Include="ExerciseModule.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">

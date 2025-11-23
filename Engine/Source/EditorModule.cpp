@@ -3,6 +3,16 @@
 #include "D3D12Module.h"
 
 
+enum class ExerciseSelection
+{
+	None = 0,
+	Exercise1,
+	Exercise2,
+	// Add more exercises
+};
+
+ExerciseSelection currentExercise = ExerciseSelection::None;
+
 EditorModule::EditorModule(HWND hWnd, D3D12Module* d3d12)
 {
 	this->hWnd = hWnd;
@@ -20,6 +30,9 @@ bool EditorModule::init()
 	viewport = new ViewportModule(hWnd, d3d12);
 	viewport->init();
 
+	exercise = new ExerciseModule(d3d12);
+	exercise->init();
+
 	return true;
 }
 
@@ -35,12 +48,43 @@ void EditorModule::preRender()
 	if (viewport->isVisible())
 		viewport->preRender();
 
+	if (showExercisesWindow)
+		drawExerciseMenu();
+	
+	
+
 
 }
 
 void EditorModule::render()
 {
+	// Get render descriptor
+	auto rtvHandle = d3d12->getRenderTargetDescriptor();
+
+	// RGBA between 0 and 1
+	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	// Clear the current RTV
+	d3d12->getCommandList()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+
+	// Execute selected exercise
+	switch (currentExercise)
+	{
+	case ExerciseSelection::Exercise1:
+		exercise->Exercise1();
+		break;
+
+	case ExerciseSelection::Exercise2:
+		//exercise->Exercise2();   
+		break;
+
+	default:
+		break;
+	}
+
+	// This must be the last call
 	imGuiPass->record(d3d12->getCommandList(), d3d12->getRenderTargetDescriptor());
+	
 }
 
 void EditorModule::postRender()
@@ -52,8 +96,10 @@ bool EditorModule::cleanUp()
 {
 	console->cleanUp();
 	viewport->cleanUp();
+	exercise->cleanUp();
 	delete console;
 	delete viewport;
+	delete exercise;
 	delete imGuiPass;
 	return true;
 }
@@ -110,7 +156,7 @@ void EditorModule::createDockSpace()
 	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 
 	// Here you could render dockable windows like a console, inspector, scene view, etc.
-	// Example: ShowConsoleWindow();
+
 
 	// End the dockspace window definition.
 	ImGui::End();
@@ -140,6 +186,7 @@ void EditorModule::drawToolbar()
 			bool showViewport = viewport->isVisible();
 			if (ImGui::MenuItem("Show Console", nullptr, showConsole)) { console->setVisible(!showConsole); }
 			if (ImGui::MenuItem("Show Viewport", nullptr, showViewport)) { viewport->setVisible(!showViewport); }
+			if (ImGui::MenuItem("Show Exercise List", nullptr, showExercisesWindow)) { showExercisesWindow = !showExercisesWindow; }
 			ImGui::EndMenu();
 		}
 
@@ -172,3 +219,31 @@ void EditorModule::drawToolbar()
 		ImGui::End();
 	}
 }
+
+void EditorModule::drawExerciseMenu()
+{
+	if (!showExercisesWindow)
+		return;
+
+	ImGui::Begin("Exercise List", &showExercisesWindow);
+
+	ImGui::Text("Select an exercise:");
+	ImGui::Separator();
+
+	if (ImGui::Selectable("Exercise 1: Red Screen", currentExercise == ExerciseSelection::Exercise1))
+	{
+		currentExercise = ExerciseSelection::Exercise1;
+	}
+
+	if (ImGui::Selectable("Exercise 2: 2D Triangle", currentExercise == ExerciseSelection::Exercise2))
+	{
+		currentExercise = ExerciseSelection::Exercise2;
+	}
+
+	// Puedes añadir más:
+	// if (ImGui::Selectable("Exercise 3", currentExercise == ExerciseSelection::Exercise3)) { ... }
+
+	ImGui::End();
+}
+
+

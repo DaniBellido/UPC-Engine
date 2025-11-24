@@ -76,7 +76,12 @@
     <ClCompile Include="ExerciseModule.cpp">
       <Filter>Modules</Filter>
     </ClCompile>
-    <ClCompile Include="Exercise1.cpp" />
+    <ClCompile Include="Exercise1.cpp">
+      <Filter>Exercises</Filter>
+    </ClCompile>
+    <ClCompile Include="Exercise2.cpp">
+      <Filter>Exercises</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -169,7 +174,12 @@
     <ClInclude Include="ExerciseModule.h">
       <Filter>Modules</Filter>
     </ClInclude>
-    <ClInclude Include="Exercise1.h" />
+    <ClInclude Include="Exercise1.h">
+      <Filter>Exercises</Filter>
+    </ClInclude>
+    <ClInclude Include="Exercise2.h">
+      <Filter>Exercises</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">
@@ -216,6 +226,9 @@
     <Filter Include="Exercises">
       <UniqueIdentifier>{5ec979fb-def0-4b33-a61a-5b9024ed1403}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Exercises\Shaders">
+      <UniqueIdentifier>{c494d83c-eccb-48d9-935a-37b691841be5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Engine.rc">
@@ -226,5 +239,13 @@
     <None Include="SimpleMath.inl">
       <Filter>Core</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Exercise2VS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Exercise2PS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

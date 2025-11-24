@@ -75,7 +75,7 @@ void EditorModule::render()
 		break;
 
 	case ExerciseSelection::Exercise2:
-		//exercise->Exercise2();   
+		exercise->exercise2();   
 		break;
 
 	default:
@@ -232,11 +232,14 @@ void EditorModule::drawExerciseMenu()
 
 	if (ImGui::Selectable("Exercise 1: Background Color", currentExercise == ExerciseSelection::Exercise1))
 	{
+		Logger::Log("Selectable 1 clicked!");
 		currentExercise = ExerciseSelection::Exercise1;
 	}
 
 	if (ImGui::Selectable("Exercise 2: 2D Triangle", currentExercise == ExerciseSelection::Exercise2))
 	{
+		Logger::Log("Selectable 2 clicked!");
+		Logger::Log("Exercise 2: EXECUTED");
 		currentExercise = ExerciseSelection::Exercise2;
 	}
 

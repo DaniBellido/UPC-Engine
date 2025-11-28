@@ -82,6 +82,9 @@
     <ClCompile Include="Exercise2.cpp">
       <Filter>Exercises</Filter>
     </ClCompile>
+    <ClCompile Include="Timer.cpp">
+      <Filter>Timer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -180,6 +183,9 @@
     <ClInclude Include="Exercise2.h">
       <Filter>Exercises</Filter>
     </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Timer</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">
@@ -228,6 +234,9 @@
     </Filter>
     <Filter Include="Exercises\Shaders">
       <UniqueIdentifier>{c494d83c-eccb-48d9-935a-37b691841be5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Timer">
+      <UniqueIdentifier>{8a71511d-180b-4d6f-96ca-aaaee50c98f3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

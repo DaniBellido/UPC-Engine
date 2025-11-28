@@ -1,4 +1,5 @@
 ﻿#include "Globals.h"
+#include "Timer.h"
 #include "EditorModule.h"
 #include "D3D12Module.h"
 
@@ -58,6 +59,9 @@ void EditorModule::preRender()
 
 void EditorModule::render()
 {
+	Timer t;
+	t.Start();
+
 	// Get render descriptor
 	auto rtvHandle = d3d12->getRenderTargetDescriptor();
 
@@ -85,6 +89,8 @@ void EditorModule::render()
 	// This must be the last call
 	imGuiPass->record(d3d12->getCommandList(), d3d12->getRenderTargetDescriptor());
 	
+	t.Stop();
+	Logger::Log("EditorModule[render]: " + std::to_string(t.ReadMs()) + " ms");
 }
 
 void EditorModule::postRender()

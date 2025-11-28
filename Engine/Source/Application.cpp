@@ -10,6 +10,9 @@
 
 Application::Application(int argc, wchar_t** argv, void* hWnd)
 {
+    Timer t;
+    t.Start();
+
     modules.push_back(new ModuleInput((HWND)hWnd));
     modules.push_back(d3d12 = new D3D12Module((HWND)hWnd));
     modules.push_back(resources = new ResourcesModule());
@@ -19,6 +22,9 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
     modules.push_back(new ExerciseModule(d3d12));
     // Last Module to be pushed must be the Editor Module
     modules.push_back(new EditorModule((HWND)hWnd, d3d12));
+
+    t.Stop();
+    Logger::Log("Modules pushed in: " + std::to_string(t.ReadMs()) + " ms");
 }
 
 Application::~Application()
@@ -33,12 +39,19 @@ Application::~Application()
  
 bool Application::init()
 {
+    Logger::Log("Initializing Application...");
+    Timer t;
+    t.Start();
+
 	bool ret = true;
 
 	for(auto it = modules.begin(); it != modules.end() && ret; ++it)
 		ret = (*it)->init();
 
     lastMilis = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    t.Stop();
+    Logger::Log("Applicaion initialized in: " + std::to_string(t.ReadMs()) + " ms");
 
 	return ret;
 }

@@ -16,7 +16,13 @@ ConsoleModule::ConsoleModule() {}
 //-----------------------------------------------------------------------------
 bool ConsoleModule::init()
 {
-    Logger::Log("Initializing console...");
+    Logger::Log("Initializing ConsoleModule...");
+
+    Timer t;
+    t.Start();
+
+    t.Stop();
+    Logger::Log("ConsoleModule initialized in: " + std::to_string(t.ReadMs()) + " ms.");
     return true;
 }
 

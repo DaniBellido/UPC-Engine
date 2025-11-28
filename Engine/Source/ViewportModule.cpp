@@ -9,7 +9,13 @@ ViewportModule::ViewportModule(HWND hWnd, D3D12Module* d3d12)
 
 bool ViewportModule::init()
 {
-    Logger::Log("Initializing Viewport...");
+    Logger::Log("Initializing ViewportModule...");
+    Timer t;
+    t.Start();
+
+    t.Stop();
+    Logger::Log("ViewportModule initialized in: " + std::to_string(t.ReadMs()) + " ms.");
+
 	return true;
 }
 

@@ -15,7 +15,14 @@ ExerciseModule::~ExerciseModule()
 
 bool ExerciseModule::init()
 {
+	Logger::Log("Initializing ExerciseModule...");
+	Timer t;
+	t.Start();
+
 	exe2->init();
+
+	t.Stop();
+	Logger::Log("ExerciseModule initialized in: " + std::to_string(t.ReadMs()) + " ms.");
 	return true;
 }
 

@@ -1,5 +1,4 @@
 ﻿#include "Globals.h"
-#include "Timer.h"
 #include "EditorModule.h"
 #include "D3D12Module.h"
 
@@ -23,6 +22,10 @@ EditorModule::EditorModule(HWND hWnd, D3D12Module* d3d12)
 
 bool EditorModule::init() 
 {
+	Logger::Log("Initializing EditorModule...");
+	Timer t;
+	t.Start();
+
 	imGuiPass = new ImGuiPass(d3d12->getDevice(), hWnd, cpuHandle, gpuHandle);
 
 	console = new ConsoleModule();
@@ -33,6 +36,10 @@ bool EditorModule::init()
 
 	exercise = new ExerciseModule(d3d12);
 	exercise->init();
+
+
+	t.Stop();
+	Logger::Log("EditorModule initialized in: " + std::to_string(t.ReadMs()) + " ms.");
 
 	return true;
 }
@@ -52,16 +59,10 @@ void EditorModule::preRender()
 	if (showExercisesWindow)
 		drawExerciseMenu();
 	
-	
-
-
 }
 
 void EditorModule::render()
 {
-	Timer t;
-	t.Start();
-
 	// Get render descriptor
 	auto rtvHandle = d3d12->getRenderTargetDescriptor();
 
@@ -88,9 +89,7 @@ void EditorModule::render()
 
 	// This must be the last call
 	imGuiPass->record(d3d12->getCommandList(), d3d12->getRenderTargetDescriptor());
-	
-	t.Stop();
-	Logger::Log("EditorModule[render]: " + std::to_string(t.ReadMs()) + " ms");
+
 }
 
 void EditorModule::postRender()
@@ -245,11 +244,10 @@ void EditorModule::drawExerciseMenu()
 	if (ImGui::Selectable("Exercise 2: 2D Triangle", currentExercise == ExerciseSelection::Exercise2))
 	{
 		Logger::Log("Selectable 2 clicked!");
-		Logger::Log("Exercise 2: EXECUTED");
 		currentExercise = ExerciseSelection::Exercise2;
 	}
 
-	// Puedes añadir más:
+	// Add more:
 	// if (ImGui::Selectable("Exercise 3", currentExercise == ExerciseSelection::Exercise3)) { ... }
 
 	ImGui::End();

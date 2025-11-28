@@ -12,6 +12,10 @@ ResourcesModule::~ResourcesModule()
 
 bool ResourcesModule::init()
 {
+	Logger::Log("Initializing ResourcesModule...");
+	Timer t;
+	t.Start();
+
 	D3D12Module* d3d12 = app->getD3D12();
 	ID3D12Device4* device = d3d12->getDevice();
 
@@ -19,6 +23,9 @@ bool ResourcesModule::init()
 	device->CreateCommandList1(0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&commandList));
 	commandList->Reset(commandAllocator.Get(), nullptr);
 	commandList->Close();
+
+	t.Stop();
+	Logger::Log("ResourceModule initialized in: " + std::to_string(t.ReadMs()) + " ms.");
 
 	return true;
 }

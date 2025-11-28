@@ -17,6 +17,11 @@ D3D12Module::D3D12Module(HWND wnd) : hWnd(wnd)
 
 bool D3D12Module::init()
 {
+	Logger::Log("Initializing D3D12Module...");
+
+	Timer t;
+	t.Start();
+
 	// ────────────────
 	// SYSTEM SETUP
 	// ────────────────
@@ -44,11 +49,8 @@ bool D3D12Module::init()
 	getWindowSize(windowWidth, windowHeight);
 	resize();
 
-
-
-	Logger::Log("It's working");
-	Logger::Err("This is an error");
-	Logger::Warn("This is a warning");
+	t.Stop();
+	Logger::Log("D3D12Module initialazed in: " + std::to_string(t.ReadMs()) + " ms.");
 
 	return true;
 }

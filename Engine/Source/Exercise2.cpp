@@ -12,7 +12,6 @@ bool Exercise2::init()
 	createVertexBuffer();
 	createRootSignature();
 	createPSO();
-    Logger::Log("Exercise 2 Init");
 
 	return true;
 }
@@ -93,8 +92,6 @@ bool Exercise2::createVertexBuffer()
     vertexBufferView.StrideInBytes = sizeof(Vertex);
     vertexBufferView.SizeInBytes = sizeof(vertices);
 
-    Logger::Log("Exercise 2: Vertex Buffer created");
-
 	return true;
 }
 
@@ -115,8 +112,6 @@ bool Exercise2::createRootSignature()
         return false;
     }
 
-    Logger::Log("Exercise 2: Root Signature created");
-
 	return true;
 }
 
@@ -133,7 +128,7 @@ bool Exercise2::createPSO()
     }
     else 
     {
-        Logger::Log("VS Data & PS Data: OK");
+        Logger::Log("Exercise2: VS Data & PS Data: OK");
     }
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
@@ -148,8 +143,6 @@ bool Exercise2::createPSO()
     psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);                               // a default rasterizer state.
     psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);                                         // a default blend state.
     psoDesc.NumRenderTargets = 1;                                                                   // we are only binding one render target
-
-    Logger::Log("Exercise 2: PSO created");
 
     // create the pso
     return SUCCEEDED(app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso)));

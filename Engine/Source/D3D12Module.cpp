@@ -1,5 +1,7 @@
 ﻿#include "Globals.h"
 #include "D3D12Module.h"
+#include "Application.h"
+#include "d3dx12.h"
 
 // ─────────────────────────────────────────────────────────────
 //  CONSTRUCTOR / DESTRUCTOR
@@ -8,6 +10,11 @@
 D3D12Module::D3D12Module(HWND wnd) : hWnd(wnd)
 {
 
+}
+
+D3D12Module::~D3D12Module()
+{
+	waitForGPU();
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -213,6 +220,39 @@ void D3D12Module::createRenderTarget()
 	}
 }
 
+bool D3D12Module::createDepthStencil()
+{
+	D3D12_CLEAR_VALUE clearValue = {};
+	clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+	clearValue.DepthStencil.Depth = 1.0f;
+	clearValue.DepthStencil.Stencil = 0;
+	CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, windowWidth, windowHeight, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE);
+
+	bool ok = SUCCEEDED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&depthStencilBuffer)));
+
+	if (ok)
+	{
+		depthStencilBuffer->SetName(L"Depth/Stencil Texture");
+
+		// create a depth stencil descriptor heap so we can get a pointer to the depth stencil buffer
+		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+		dsvHeapDesc.NumDescriptors = 1;
+		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		ok = SUCCEEDED(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsvDescriptorHeap)));
+
+		if (ok) dsvDescriptorHeap->SetName(L"Depth/Stencil Resource Heap");
+	}
+
+	if (ok)
+	{
+		device->CreateDepthStencilView(depthStencilBuffer.Get(), nullptr, dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	}
+
+	return ok;
+}
+
 void D3D12Module::createFence()
 {
 	ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
@@ -288,6 +328,60 @@ D3D12_CPU_DESCRIPTOR_HANDLE D3D12Module::getRenderTargetDescriptor()
 	return rtvHandle;
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12Module::getDepthStencilDescriptor()
+{
+	return dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+}
+
+UINT D3D12Module::signalDrawQueue()
+{
+	fenceValue[currentBackBufferIdx] = ++fenceCounter;
+	commandQueue->Signal(fence.Get(), fenceValue[currentBackBufferIdx]);
+
+	return fenceCounter;
+}
+
+ID3D12GraphicsCommandList* D3D12Module::beginFrameRender()
+{
+	commandList->Reset(getCommandAllocator(), nullptr);
+	// TODO: Missing methods in Application class
+	/*ID3D12DescriptorHeap* descriptorHeaps[] = { app->getShaderDescriptors()->getHeap(), app->getSamplers()->getHeap() };
+	commandList->SetDescriptorHeaps(2, descriptorHeaps);*/
+
+	return commandList.Get();
+}
+
+void D3D12Module::setBackBufferRenderTarget(const Vector4& clearColor)
+{
+	// Transition Back Buffer to Render Target
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(getBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	commandList->ResourceBarrier(1, &barrier);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = getRenderTargetDescriptor();
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv = getDepthStencilDescriptor();
+
+	commandList->OMSetRenderTargets(1, &rtv, false, &dsv);
+	commandList->ClearRenderTargetView(rtv, &clearColor.x, 0, nullptr);
+	commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+
+	D3D12_VIEWPORT viewport{ 0.0f, 0.0f, float(windowWidth), float(windowHeight), 0.0f, 1.0f };
+	D3D12_RECT scissor = { 0, 0, LONG(windowWidth), LONG(windowHeight) };
+	commandList->RSSetViewports(1, &viewport);
+	commandList->RSSetScissorRects(1, &scissor);
+}
+
+void D3D12Module::endFrameRender()
+{
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(getBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+	commandList->ResourceBarrier(1, &barrier);
+
+	if (SUCCEEDED(commandList->Close()))
+	{
+		ID3D12CommandList* commandLists[] = { commandList.Get() };
+		getCommandQueue()->ExecuteCommandLists(UINT(std::size(commandLists)), commandLists);
+	}
+}
+
 void D3D12Module::waitForGPU()
 {
 	commandQueue->Signal(fence.Get(), ++fenceCounter);
@@ -340,6 +434,48 @@ void D3D12Module::resize()
 		//createDepthStencil();
 
 		currentBackBufferIdx = swapChain->GetCurrentBackBufferIndex();
+	}
+}
+
+void D3D12Module::toogleFullscreen()
+{
+	fullscreen = !fullscreen;
+
+	if (fullscreen)
+	{
+
+		GetWindowRect(hWnd, &lastWindowRect);
+
+		UINT windowStyle = WS_OVERLAPPEDWINDOW & ~(WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+
+		SetWindowLongW(hWnd, GWL_STYLE, windowStyle);
+
+		HMONITOR hMonitor = ::MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+		MONITORINFOEX monitorInfo = {};
+		monitorInfo.cbSize = sizeof(MONITORINFOEX);
+		GetMonitorInfo(hMonitor, &monitorInfo);
+
+		SetWindowPos(hWnd, HWND_TOP,
+			monitorInfo.rcMonitor.left,
+			monitorInfo.rcMonitor.top,
+			monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
+			monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
+			SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+		::ShowWindow(hWnd, SW_MAXIMIZE);
+	}
+	else
+	{
+		SetWindowLong(hWnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+
+		SetWindowPos(hWnd, HWND_NOTOPMOST,
+			lastWindowRect.left,
+			lastWindowRect.top,
+			lastWindowRect.right - lastWindowRect.left,
+			lastWindowRect.bottom - lastWindowRect.top,
+			SWP_FRAMECHANGED | SWP_NOACTIVATE);
+
+		::ShowWindow(hWnd, SW_NORMAL);
 	}
 }
 

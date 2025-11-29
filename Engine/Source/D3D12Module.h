@@ -21,34 +21,48 @@ private:
 	ComPtr<ID3D12Device5> device;
 	
 	// Render Setup
+	ComPtr<IDXGISwapChain3> swapChain;
+	ComPtr<ID3D12Resource> backBuffers[FRAMES_IN_FLIGHT];
+	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;
+	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap;
+	ComPtr<ID3D12Resource> depthStencilBuffer;
+
 	ComPtr<ID3D12CommandQueue> commandQueue;
 	ComPtr<ID3D12CommandAllocator> commandAllocator[FRAMES_IN_FLIGHT];
 	ComPtr<ID3D12GraphicsCommandList> commandList;
 
-	ComPtr<IDXGISwapChain3> swapChain;
-	ComPtr<ID3D12Resource> backBuffers[FRAMES_IN_FLIGHT];
-
-	ComPtr<ID3D12DescriptorHeap> rtvDescriptorHeap;
-	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap;
-
 	ComPtr<ID3D12Fence> fence;
-	UINT fenceValue[FRAMES_IN_FLIGHT] = { 0,0,0 };
 	HANDLE fenceEvent = nullptr;
 	unsigned fenceCounter = 0;
+	unsigned fenceValue[FRAMES_IN_FLIGHT] = { 0,0,0 };
+
+	unsigned frameValues[FRAMES_IN_FLIGHT] = { 0,0,0 };
+	unsigned frameIndex = 0;
+	unsigned lastCompletedFrame = 0;
+
+	bool allowTearing = false;
+	bool supportsRT = false;
+	unsigned currentBackBufferIdx = 0;
 
 	unsigned windowWidth = 0;
 	unsigned windowHeight = 0;
-	unsigned currentBackBufferIdx = 0;
-
+	bool fullscreen = false;
+	RECT lastWindowRect;
+	
 
 public:
 	D3D12Module(HWND hWnd);
-	~D3D12Module() {}
+	~D3D12Module();
 
 	bool init() override;
 	bool cleanUp() override;
 	void preRender() override;
 	void postRender() override;
+
+
+	void resize();
+	void toogleFullscreen();
+	void waitForGPU();
 
 	HWND getHWnd() { return hWnd; }
 	IDXGISwapChain3* getSwapChain() { return swapChain.Get(); }
@@ -57,21 +71,26 @@ public:
 	ID3D12CommandAllocator* getCommandAllocator() { return commandAllocator[currentBackBufferIdx].Get(); }
 	ID3D12Resource* getBackBuffer() { return backBuffers[currentBackBufferIdx].Get(); }
 	ID3D12CommandQueue* getCommandQueue() { return commandQueue.Get(); }
-	ID3D12DescriptorHeap* getRtvDescriptorHeap() { return rtvDescriptorHeap.Get(); }
-	ID3D12DescriptorHeap* getDsvDescriptorHeap() { return dsvDescriptorHeap.Get(); }
+
+	unsigned getCurrentBackBufferIdx() const { return currentBackBufferIdx; }
 
 	D3D12_CPU_DESCRIPTOR_HANDLE getRenderTargetDescriptor();
 	D3D12_CPU_DESCRIPTOR_HANDLE getDepthStencilDescriptor();
 
-	void resize();
-	void waitForGPU();
+	UINT signalDrawQueue();
 
-	//--------------------------------------------------------
-	//PIN8
+	unsigned getCurrentFrame() const { return frameIndex; }
+	unsigned getLastCompletedFrame() const { return lastCompletedFrame; }
+
 	unsigned getWindowWidth() const { return windowWidth; }
 	unsigned getWindowHeight() const { return windowHeight; }
 
+	ID3D12GraphicsCommandList* beginFrameRender();
+	void setBackBufferRenderTarget(const Vector4& clearColor = Vector4(0.0f, 0.0f, 0.0f, 1.0f));
+	void endFrameRender();
 
+	/*ID3D12DescriptorHeap* getRtvDescriptorHeap() { return rtvDescriptorHeap.Get(); }
+	ID3D12DescriptorHeap* getDsvDescriptorHeap() { return dsvDescriptorHeap.Get(); }*/
 
 private:
 	void getWindowSize(unsigned& width, unsigned& height);
@@ -83,7 +102,7 @@ private:
 	void setUpInfoQueue();
 	void createSwapChain();
 	void createRenderTarget();
-	void createDepthStencil();
+	bool createDepthStencil();
 	void createFence();
 
 	

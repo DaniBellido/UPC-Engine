@@ -1,6 +1,6 @@
 ﻿#include "Globals.h"
 #include "EditorModule.h"
-#include "D3D12Module.h"
+#include "Application.h"
 
 
 enum class ExerciseSelection
@@ -63,14 +63,14 @@ void EditorModule::preRender()
 
 void EditorModule::render()
 {
-	// Get render descriptor
-	auto rtvHandle = d3d12->getRenderTargetDescriptor();
+	//// Get render descriptor
+	//auto rtvHandle = d3d12->getRenderTargetDescriptor();
 
 	// RGBA between 0 and 1
-	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	/*const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };*/
 
-	// Clear the current RTV
-	d3d12->getCommandList()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+	//// Clear the current RTV
+	//d3d12->getCommandList()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
 
 	// Execute selected exercise
 	switch (currentExercise)
@@ -87,8 +87,18 @@ void EditorModule::render()
 		break;
 	}
 
-	// This must be the last call
-	imGuiPass->record(d3d12->getCommandList(), d3d12->getRenderTargetDescriptor());
+	//// This must be the last call
+	//imGuiPass->record(d3d12->getCommandList(), d3d12->getRenderTargetDescriptor());
+
+	D3D12Module* d3d12 = app->getD3D12();
+
+	ID3D12GraphicsCommandList* commandList = d3d12->beginFrameRender();
+
+	d3d12->setBackBufferRenderTarget(Vector4(0.188f, 0.208f, 0.259f, 1.0f));
+
+	imGuiPass->record(commandList);
+
+	d3d12->endFrameRender();
 
 }
 
@@ -99,6 +109,7 @@ void EditorModule::postRender()
 
 bool EditorModule::cleanUp()
 {
+	app->getD3D12()->waitForGPU();
 	console->cleanUp();
 	viewport->cleanUp();
 	exercise->cleanUp();
@@ -227,8 +238,25 @@ void EditorModule::drawToolbar()
 
 void EditorModule::drawExerciseMenu()
 {
+	// Execute selected exercise
+	switch (currentExercise)
+	{
+	case ExerciseSelection::Exercise1:
+		exercise->exercise1();
+		break;
+
+	case ExerciseSelection::Exercise2:
+		exercise->exercise2();
+		break;
+
+	default:
+		break;
+	}
+
+
 	if (!showExercisesWindow)
 		return;
+
 
 	ImGui::Begin("Exercise List", &showExercisesWindow);
 

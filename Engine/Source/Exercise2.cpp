@@ -18,57 +18,94 @@ bool Exercise2::init()
 
 void Exercise2::render()
 {
-    // D3D12Module handles:
-    // - preRender(): resets the command allocator and list, transitions the back buffer to RENDER_TARGET,
-    //                and sets the render target (OMSetRenderTargets)
-    // - postRender(): transitions the back buffer to PRESENT, closes the command list,
-    //                 executes it, and presents the frame.
-    //  Only need to:
-    // - Set pipeline and root signature
-    // - Set buffers and topology
-    // - Issue draw calls
+    //// D3D12Module handles:
+    //// - preRender(): resets the command allocator and list, transitions the back buffer to RENDER_TARGET,
+    ////                and sets the render target (OMSetRenderTargets)
+    //// - postRender(): transitions the back buffer to PRESENT, closes the command list,
+    ////                 executes it, and presents the frame.
+    ////  Only need to:
+    //// - Set pipeline and root signature
+    //// - Set buffers and topology
+    //// - Issue draw calls
 
 
-    // We get the command list that has already been reset and prepared by preRender() in D3D12Module
-    // (preRender() does: Reset allocator, Reset commandList, transition to RENDER_TARGET, OMSetRenderTargets)
+    //// We get the command list that has already been reset and prepared by preRender() in D3D12Module
+    //// (preRender() does: Reset allocator, Reset commandList, transition to RENDER_TARGET, OMSetRenderTargets)
+    //D3D12Module* d3d12 = app->getD3D12();
+    //ID3D12GraphicsCommandList* commandList = d3d12->getCommandList();
+
+    //// ------------------------------------------------------------
+    //// Set viewport and scissor rect
+    //// ------------------------------------------------------------
+    //
+    //// The viewport defines the area of the screen where pixels are drawn
+    //D3D12_VIEWPORT viewport{ 0.0f, 0.0f, float(d3d12->getWindowWidth()), float(d3d12->getWindowHeight()), 0.0f, 1.0f };
+    //D3D12_RECT scissor{ 0, 0, LONG(d3d12->getWindowWidth()), LONG(d3d12->getWindowHeight()) };
+    //// Assign viewport and scissor to the rasterizer stage
+    //commandList->RSSetViewports(1, &viewport);
+    //commandList->RSSetScissorRects(1, &scissor);
+
+    //// ------------------------------------------------------------
+    //// Set up the graphics pipeline
+    //// ------------------------------------------------------------
+  
+    //// The root signature defines how resources are passed to shaders
+    //commandList->SetGraphicsRootSignature(rootSignature.Get());
+    //// The PSO (Pipeline State Object) contains shaders, input layout, blend state, rasterizer state, etc.
+    //commandList->SetPipelineState(pso.Get());
+
+    //// ------------------------------------------------------------
+    //// Configure the Input Assembler
+    //// ------------------------------------------------------------
+    //
+    //// Set primitive type (triangles)
+    //commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    //// Assign the vertex buffer containing the triangle’s vertices
+    //commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+
+    //// ------------------------------------------------------------
+    //// Draw the geometry
+    //// ------------------------------------------------------------
+    //// DrawInstanced(numVertices, numInstances, startVertex, startInstance)
+    //// Here we draw 3 vertices forming a single triangle
+    //commandList->DrawInstanced(3, 1, 0, 0);
+
+    ////////////////////////////////////////////////////////////////////////
+
     D3D12Module* d3d12 = app->getD3D12();
     ID3D12GraphicsCommandList* commandList = d3d12->getCommandList();
 
-    // ------------------------------------------------------------
-    // Set viewport and scissor rect
-    // ------------------------------------------------------------
-    
-    // The viewport defines the area of the screen where pixels are drawn
-    D3D12_VIEWPORT viewport{ 0.0f, 0.0f, float(d3d12->getWindowWidth()), float(d3d12->getWindowHeight()), 0.0f, 1.0f };
-    D3D12_RECT scissor{ 0, 0, LONG(d3d12->getWindowWidth()), LONG(d3d12->getWindowHeight()) };
-    // Assign viewport and scissor to the rasterizer stage
+    commandList->Reset(d3d12->getCommandAllocator(), pso.Get());
+
+    CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(d3d12->getBackBuffer(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    commandList->ResourceBarrier(1, &barrier);
+
+    LONG width = (LONG)d3d12->getWindowWidth();
+    LONG height = (LONG)d3d12->getWindowHeight();
+
+    D3D12_VIEWPORT viewport{ 0.0, 0.0, float(width),  float(height) , 0.0, 1.0 };
+    D3D12_RECT scissor{ 0, 0, width, height };
+
+    float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+    D3D12_CPU_DESCRIPTOR_HANDLE rtv = d3d12->getRenderTargetDescriptor();
+
     commandList->RSSetViewports(1, &viewport);
     commandList->RSSetScissorRects(1, &scissor);
-
-    // ------------------------------------------------------------
-    // Set up the graphics pipeline
-    // ------------------------------------------------------------
-  
-    // The root signature defines how resources are passed to shaders
+    commandList->OMSetRenderTargets(1, &rtv, false, nullptr);
+    commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
     commandList->SetGraphicsRootSignature(rootSignature.Get());
-    // The PSO (Pipeline State Object) contains shaders, input layout, blend state, rasterizer state, etc.
-    commandList->SetPipelineState(pso.Get());
+    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);   // set the primitive topology
+    commandList->IASetVertexBuffers(0, 1, &vertexBufferView);                   // set the vertex buffer (using the vertex buffer view)
+    commandList->DrawInstanced(3, 1, 0, 0);                                     // finally draw 3 vertices (draw the triangle)
 
-    // ------------------------------------------------------------
-    // Configure the Input Assembler
-    // ------------------------------------------------------------
-    
-    // Set primitive type (triangles)
-    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    // Assign the vertex buffer containing the triangle’s vertices
-    commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
+    barrier = CD3DX12_RESOURCE_BARRIER::Transition(d3d12->getBackBuffer(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    commandList->ResourceBarrier(1, &barrier);
 
-    // ------------------------------------------------------------
-    // Draw the geometry
-    // ------------------------------------------------------------
-    // DrawInstanced(numVertices, numInstances, startVertex, startInstance)
-    // Here we draw 3 vertices forming a single triangle
-    commandList->DrawInstanced(3, 1, 0, 0);
+    if (SUCCEEDED(commandList->Close()))
+    {
+        ID3D12CommandList* commandLists[] = { commandList };
+        d3d12->getCommandQueue()->ExecuteCommandLists(UINT(std::size(commandLists)), commandLists);
+    }
 
 }
 

@@ -179,6 +179,7 @@
     <ClInclude Include="Engine.h" />
     <ClInclude Include="Exercise1.h" />
     <ClInclude Include="Exercise2.h" />
+    <ClInclude Include="Exercise3.h" />
     <ClInclude Include="ExerciseModule.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GamePad.h" />
@@ -270,6 +271,7 @@
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="Exercise1.cpp" />
     <ClCompile Include="Exercise2.cpp" />
+    <ClCompile Include="Exercise3.cpp" />
     <ClCompile Include="ExerciseModule.cpp" />
     <ClCompile Include="GamePad.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

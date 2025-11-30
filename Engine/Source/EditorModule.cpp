@@ -8,6 +8,7 @@ enum class ExerciseSelection
 	None = 0,
 	Exercise1,
 	Exercise2,
+	Exercise3,
 	// Add more exercises
 };
 
@@ -81,6 +82,10 @@ void EditorModule::render()
 
 	case ExerciseSelection::Exercise2:
 		exercise->exercise2();   
+		break;
+
+	case ExerciseSelection::Exercise3:
+		exercise->exercise3();
 		break;
 
 	default:
@@ -245,6 +250,12 @@ void EditorModule::drawExerciseMenu()
 	{
 		Logger::Log("Selectable 2 clicked!");
 		currentExercise = ExerciseSelection::Exercise2;
+	}
+
+	if (ImGui::Selectable("Exercise 3: 3D Triangle", currentExercise == ExerciseSelection::Exercise3))
+	{
+		Logger::Log("Selectable 3 clicked!");
+		currentExercise = ExerciseSelection::Exercise3;
 	}
 
 	// Add more:

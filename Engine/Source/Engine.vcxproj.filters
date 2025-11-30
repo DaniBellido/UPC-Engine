@@ -85,6 +85,9 @@
     <ClCompile Include="Timer.cpp">
       <Filter>Timer</Filter>
     </ClCompile>
+    <ClCompile Include="Exercise3.cpp">
+      <Filter>Exercises</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -185,6 +188,9 @@
     </ClInclude>
     <ClInclude Include="Timer.h">
       <Filter>Timer</Filter>
+    </ClInclude>
+    <ClInclude Include="Exercise3.h">
+      <Filter>Exercises</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

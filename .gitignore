@@ -3,6 +3,10 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# ImGui window positions/settings
+imgui.ini
+*.ini
+
 # User-specific files
 *.rsuser
 *.suo

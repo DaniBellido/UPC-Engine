@@ -51,10 +51,12 @@ bool D3D12Module::init()
 	createSwapChain();							// "Frame flipper" for presenting images
 	createCommandAllocator();					// Memory for recording command lists
 	createCommandList();						// "Playlist" of GPU work
-	createRenderTarget();						// "Canvas" to draw into
+	//createRenderTarget();						// "Canvas" to draw into <---- Inside the resize() method
 	createFence();								// "Completion flag" for CPU↔GPU sync
 	getWindowSize(windowWidth, windowHeight);
 	resize();
+
+
 
 	t.Stop();
 	Logger::Log("D3D12Module initialazed in: " + std::to_string(t.ReadMs()) + " ms.");
@@ -229,28 +231,22 @@ bool D3D12Module::createDepthStencil()
 	CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, windowWidth, windowHeight, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE);
 
-	bool ok = SUCCEEDED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&depthStencilBuffer)));
+	device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clearValue, IID_PPV_ARGS(&depthStencilBuffer));
 
-	if (ok)
-	{
-		depthStencilBuffer->SetName(L"Depth/Stencil Texture");
+	depthStencilBuffer->SetName(L"Depth/Stencil Texture");
 
-		// create a depth stencil descriptor heap so we can get a pointer to the depth stencil buffer
-		D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-		dsvHeapDesc.NumDescriptors = 1;
-		dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		ok = SUCCEEDED(device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsvDescriptorHeap)));
+	// create a depth stencil descriptor heap so we can get a pointer to the depth stencil buffer
+	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
+	dsvHeapDesc.NumDescriptors = 1;
+	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	device->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(&dsvDescriptorHeap));
 
-		if (ok) dsvDescriptorHeap->SetName(L"Depth/Stencil Resource Heap");
-	}
+	dsvDescriptorHeap->SetName(L"Depth/Stencil Resource Heap");
 
-	if (ok)
-	{
-		device->CreateDepthStencilView(depthStencilBuffer.Get(), nullptr, dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-	}
+	device->CreateDepthStencilView(depthStencilBuffer.Get(), nullptr, dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
-	return ok;
+	return true;
 }
 
 void D3D12Module::createFence()
@@ -285,9 +281,13 @@ void D3D12Module::preRender()
 	D3D12_RESOURCE_BARRIER barrierToRender = CD3DX12_RESOURCE_BARRIER::Transition(backBuffers[currentBackBufferIdx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	commandList->ResourceBarrier(1, &barrierToRender);
 
-	// Set the RTV (and optionally DSV) so ClearRenderTargetView affects current buffer
+	// Set the RTV and DSV so ClearRenderTargetView affects current buffer
 	auto rtvHandle = getRenderTargetDescriptor();
-	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+	auto dsvHandle = getDepthStencilDescriptor();
+	commandList->OMSetRenderTargets(1, &rtvHandle, FALSE, &dsvHandle);
+
+	commandList->ClearDepthStencilView(dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	
 
 }
 
@@ -431,7 +431,7 @@ void D3D12Module::resize()
 		swapChain->ResizeBuffers(FRAMES_IN_FLIGHT, windowWidth, windowHeight, swapChainDesc.BufferDesc.Format, swapChainDesc.Flags);
 
 		createRenderTarget();
-		//createDepthStencil();
+		createDepthStencil();
 
 		currentBackBufferIdx = swapChain->GetCurrentBackBufferIndex();
 	}

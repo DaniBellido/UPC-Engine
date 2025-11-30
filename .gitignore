@@ -422,3 +422,4 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+Engine/Game/imgui.ini

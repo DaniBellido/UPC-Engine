@@ -8,6 +8,7 @@ ExerciseModule::ExerciseModule(D3D12Module* d3d12)
 	exe1 = new Exercise1();
 	exe2 = new Exercise2();
 	exe3 = new Exercise3();
+	exe4 = new Exercise4();
 }
 
 ExerciseModule::~ExerciseModule()
@@ -22,6 +23,7 @@ bool ExerciseModule::init()
 
 	exe2->init();
 	exe3->init();
+	exe4->init();
 
 	t.Stop();
 	Logger::Log("ExerciseModule initialized in: " + std::to_string(t.ReadMs()) + " ms.");
@@ -33,6 +35,7 @@ bool ExerciseModule::cleanUp()
 	delete exe1;
 	delete exe2;
 	delete exe3;
+	delete exe4;
 	return true;
 }
 
@@ -54,6 +57,11 @@ void ExerciseModule::exercise2()
 void ExerciseModule::exercise3()
 {
 	exe3->render();
+}
+
+void ExerciseModule::exercise4()
+{
+	exe4->render();
 }
 
 

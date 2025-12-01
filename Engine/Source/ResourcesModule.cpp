@@ -2,9 +2,12 @@
 #include "ResourcesModule.h"
 #include "Application.h"
 
+
+
 ResourcesModule::ResourcesModule() 
 {
 }
+
 
 ResourcesModule::~ResourcesModule() 
 {
@@ -138,3 +141,24 @@ ComPtr<ID3D12Resource> ResourcesModule::createDefaultBuffer(const void* data, si
 
 	return vertexBuffer;
 }
+
+ComPtr<ID3D12Resource> ResourcesModule::createRawTexture2D(const void* data, size_t rowSize, size_t width, size_t height, DXGI_FORMAT format)
+{
+	return ComPtr<ID3D12Resource>();
+}
+
+ComPtr<ID3D12Resource> ResourcesModule::createTextureFromMemory(const void* data, size_t size, const char* name)
+{
+	return ComPtr<ID3D12Resource>();
+}
+
+ComPtr<ID3D12Resource> ResourcesModule::createTextureFromFile(const std::filesystem::path& path, bool defaultSRGB)
+{
+	return ComPtr<ID3D12Resource>();
+}
+
+ComPtr<ID3D12Resource> ResourcesModule::createTextureFromImage(const ScratchImage& image, const char* name)
+{
+	return ComPtr<ID3D12Resource>();
+}
+

@@ -88,6 +88,9 @@
     <ClCompile Include="Exercise3.cpp">
       <Filter>Exercises</Filter>
     </ClCompile>
+    <ClCompile Include="Exercise4.cpp">
+      <Filter>Exercises</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -192,6 +195,9 @@
     <ClInclude Include="Exercise3.h">
       <Filter>Exercises</Filter>
     </ClInclude>
+    <ClInclude Include="Exercise4.h">
+      <Filter>Exercises</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">
@@ -266,6 +272,12 @@
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Exercise3PS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Exercise4VS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Exercise4PS.hlsl">
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
   </ItemGroup>

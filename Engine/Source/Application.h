@@ -5,11 +5,12 @@
 #include <array>
 #include <vector>
 #include <chrono>
-#include "DebugDrawPass.h"
 
 class Module;
 class D3D12Module;
 class ResourcesModule;
+
+class DebugDrawPass;
 
 class Application
 {

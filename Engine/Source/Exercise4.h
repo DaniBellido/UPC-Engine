@@ -20,7 +20,6 @@ private:
 	float rotationZ = 0.0f;
 	float camDistance = 5.0f;
 
-	DebugDrawPass* debugDrawPass = nullptr;
 
 	bool createVertexBuffer();
 	bool createIndexBuffer();

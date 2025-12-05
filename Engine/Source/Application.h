@@ -5,6 +5,7 @@
 #include <array>
 #include <vector>
 #include <chrono>
+#include "DebugDrawPass.h"
 
 class Module;
 class D3D12Module;
@@ -23,6 +24,8 @@ public:
 
     D3D12Module* getD3D12() { return d3d12; }
     ResourcesModule* getResources() { return resources; }
+    DebugDrawPass* getDebugDrawPass() { return debugDrawPass.get(); }
+
     float                       getFPS() const { return 1000.0f * float(MAX_FPS_TICKS) / tickSum; }
     float                       getAvgElapsedMs() const { return tickSum / float(MAX_FPS_TICKS); }
     uint64_t                    getElapsedMilis() const { return elapsedMilis; }
@@ -38,6 +41,8 @@ private:
 
     D3D12Module* d3d12 = nullptr;
     ResourcesModule* resources = nullptr;
+
+    std::unique_ptr<DebugDrawPass> debugDrawPass;
 
     uint64_t  lastMilis = 0;
     TickList  tickList;

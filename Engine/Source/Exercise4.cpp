@@ -17,8 +17,6 @@ bool Exercise4::init()
     createRootSignature();
     createPSO();
 
-    debugDrawPass = new DebugDrawPass(app->getD3D12()->getDevice(), app->getD3D12()->getCommandQueue());
-
     return true;
 }
 
@@ -104,7 +102,8 @@ void Exercise4::render()
     //commandList->DrawInstanced(24, 1, 0, 0);   // DrawInstanced(numVertices, numInstances, startVertex, startInstance)
     commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
-    debugDrawPass->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
+    app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
+
 }
 
 

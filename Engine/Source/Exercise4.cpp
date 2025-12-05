@@ -17,7 +17,7 @@ bool Exercise4::init()
     createRootSignature();
     createPSO();
 
-    /*debugDrawPass = new DebugDrawPass(app->getD3D12()->getDevice(), app->getD3D12()->getCommandQueue());*/
+    debugDrawPass = new DebugDrawPass(app->getD3D12()->getDevice(), app->getD3D12()->getCommandQueue());
 
     return true;
 }
@@ -81,7 +81,7 @@ void Exercise4::render()
 
     SimpleMath::Matrix model = rotX * rotY * rotZ;
     SimpleMath::Matrix view = SimpleMath::Matrix::CreateLookAt(
-        SimpleMath::Vector3(0.0f, 0.0f, camDistance), SimpleMath::Vector3::Zero, SimpleMath::Vector3::Up);
+        SimpleMath::Vector3(0.0f, 3.0f, camDistance), SimpleMath::Vector3::Zero, SimpleMath::Vector3::Up);
 
     float aspect = float(d3d12->getWindowWidth()) / float(d3d12->getWindowHeight());
     SimpleMath::Matrix proj = SimpleMath::Matrix::CreatePerspectiveFieldOfView(XM_PIDIV4, aspect, 0.1f, 100.0f);
@@ -94,15 +94,17 @@ void Exercise4::render()
     // GRID
     // ------------------------------------------------------------
 
-   /* dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray);
+   dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray);
     dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f);
-    debugDrawPass->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);*/
+   
 
     // ------------------------------------------------------------
     // Draw the geometry
     // ------------------------------------------------------------
     //commandList->DrawInstanced(24, 1, 0, 0);   // DrawInstanced(numVertices, numInstances, startVertex, startInstance)
     commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
+
+    debugDrawPass->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
 }
 
 

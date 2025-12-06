@@ -15,10 +15,19 @@ private:
 	ComPtr<ID3D12Resource> indexBuffer;
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;
 
-	float rotationX = 0.0f;
-	float rotationY = 0.0f;
-	float rotationZ = 0.0f;
+	float rotationX, rotationY, rotationZ = 0.0f;
+	float scaleX{ 1.0f }, scaleY{ 1.0f }, scaleZ{1.0f};
+	float positionX, positionY, positionZ = 0.0f;
+
 	float camDistance = 5.0f;
+	float camHeight = 3.0f;
+	float camSide = 0.0f;
+
+	float camFov = XM_PIDIV4;
+	float camNear = 0.1f;
+	float camFar = 100.0f;
+
+	bool isGridVisible = true;
 
 
 	bool createVertexBuffer();
@@ -26,7 +35,10 @@ private:
 	bool createRootSignature();
 	bool createPSO();
 
+	void ExerciseMenu();
+
 	float DegreesToRadians(float degrees) { return degrees * 3.14159265359f / 180.0f; }
+
 		
 public:
 

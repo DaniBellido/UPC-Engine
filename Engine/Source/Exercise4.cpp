@@ -25,13 +25,7 @@ void Exercise4::render()
     // ----------------------------------------------------------------
     // ImGui Window
     // ----------------------------------------------------------------
-    ImGui::Begin("Quad rotation");
-    ImGui::SliderFloat("Rot X", &rotationX, 0.0f, 360.0f);
-    ImGui::SliderFloat("Rot Y", &rotationY, 0.0f, 360.0f);
-    ImGui::SliderFloat("Rot Z", &rotationZ, 0.0f, 360.0f);
-
-    ImGui::SliderFloat("Camera Distance", &camDistance, 1.0f, 20.0f);
-    ImGui::End();
+    ExerciseMenu();
 
     // ------------------------------------------------------------
     D3D12Module* d3d12 = app->getD3D12();
@@ -77,12 +71,15 @@ void Exercise4::render()
     SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(DegreesToRadians(rotationY));
     SimpleMath::Matrix rotZ = SimpleMath::Matrix::CreateRotationZ(DegreesToRadians(rotationZ));
 
-    SimpleMath::Matrix model = rotX * rotY * rotZ;
+    SimpleMath::Matrix scale = SimpleMath::Matrix::CreateScale(scaleX, scaleY, scaleZ);
+    SimpleMath::Matrix position = SimpleMath::Matrix::CreateTranslation(positionX, positionY, positionZ);
+
+    SimpleMath::Matrix model = scale * rotX * rotY * rotZ * position;
     SimpleMath::Matrix view = SimpleMath::Matrix::CreateLookAt(
-        SimpleMath::Vector3(0.0f, 3.0f, camDistance), SimpleMath::Vector3::Zero, SimpleMath::Vector3::Up);
+        SimpleMath::Vector3(camSide, camHeight, camDistance), SimpleMath::Vector3::Zero, SimpleMath::Vector3::Up);
 
     float aspect = float(d3d12->getWindowWidth()) / float(d3d12->getWindowHeight());
-    SimpleMath::Matrix proj = SimpleMath::Matrix::CreatePerspectiveFieldOfView(XM_PIDIV4, aspect, 0.1f, 100.0f);
+    SimpleMath::Matrix proj = SimpleMath::Matrix::CreatePerspectiveFieldOfView(camFov, aspect, camNear, camFar);
 
     mvpMatrix = (model * view * proj).Transpose();
     commandList->SetGraphicsRoot32BitConstants(0, 64, &mvpMatrix, 0);
@@ -92,14 +89,16 @@ void Exercise4::render()
     // GRID
     // ------------------------------------------------------------
 
-   dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray);
-    dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f);
-   
+    if (isGridVisible) 
+    {
+        dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray);
+        dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f);
+    }
 
     // ------------------------------------------------------------
     // Draw the geometry
     // ------------------------------------------------------------
-    //commandList->DrawInstanced(24, 1, 0, 0);   // DrawInstanced(numVertices, numInstances, startVertex, startInstance)
+
     commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
 
     app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
@@ -268,5 +267,93 @@ bool Exercise4::createPSO()
 
     // create the pso
     return SUCCEEDED(app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso)));
+}
+
+void Exercise4::ExerciseMenu()
+{
+    ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+    if (ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen)) 
+    {
+        // Position
+        ImGui::Text("Position");
+        ImGui::SameLine(85.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::DragFloat3("##Pos", &positionX, 0.1f, -500.0f, 500.0f, "%.3f");
+        ImGui::SameLine();
+        if (ImGui::Button("Reset##Pos", ImVec2(50, 0))) {
+            positionX = positionY = positionZ = 0.0f;
+        }
+
+        // Rotation  
+        ImGui::Text("Rotation");
+        ImGui::SameLine(85.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat3("##Rot", &rotationX, 0.0f, 360.0f);
+        ImGui::SameLine();
+        if (ImGui::Button("Reset##Rot", ImVec2(50, 0))) 
+        {
+            rotationX = rotationY = rotationZ = 0.0f;
+        }
+
+        // Scale
+        ImGui::Text("Scale");
+        ImGui::SameLine(85.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat3("##Sca", &scaleX, 0.5f, 10.0f);
+        ImGui::SameLine();
+        if (ImGui::Button("Reset##Scale", ImVec2(50, 0))) 
+        {
+            scaleX = scaleY = scaleZ = 1.0f;
+        }
+    }
+
+    if (ImGui::CollapsingHeader("View", ImGuiTreeNodeFlags_DefaultOpen)) 
+    {
+        ImGui::Text("Distance"); ImGui::SameLine(85.0f);
+        ImGui::SliderFloat("##Dist", &camDistance, 1.0f, 100.0f, "%.1f");
+
+        ImGui::Text("Height"); ImGui::SameLine(85.0f);
+        ImGui::SliderFloat("##Height", &camHeight, -50.0f, 50.0f, "%.1f");
+
+        ImGui::Text("Side"); ImGui::SameLine(85.0f);
+        ImGui::SliderFloat("##Side", &camSide, -20.0f, 20.0f, "%.1f");
+    }
+
+    if (ImGui::CollapsingHeader("Projection", ImGuiTreeNodeFlags_DefaultOpen)) 
+    {
+        ImGui::Text("FOV"); ImGui::SameLine(85.0f);
+        ImGui::SliderFloat("##Fov", &camFov, 0.1f, 3.0f, "%.2f");
+
+        ImGui::Text("Near"); ImGui::SameLine(85.0f);
+        ImGui::SliderFloat("##Near", &camNear, 0.01f, 5.0f, "%.3f");
+
+        ImGui::Text("Far"); ImGui::SameLine(85.0f);
+        ImGui::SliderFloat("##Far", &camFar, 10.0f, 500.0f, "%.0f");
+    }
+    if (ImGui::CollapsingHeader("Dsiplay", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Checkbox("Show grid", &isGridVisible);
+    }
+
+    ImGui::Separator();
+    if (ImGui::Button("Reset All", ImVec2(ImGui::GetContentRegionAvail().x, 0))) 
+    {
+        // Model resets
+        positionX = positionY = positionZ = 0.0f;
+        rotationX = rotationY = rotationZ = 0.0f;
+        scaleX = scaleY = scaleZ = 1.0f;
+        // Camera resets  
+        camDistance = 5.0f;
+        camHeight = 3.0f;
+        camSide = 0.0f;
+        camFov = XM_PIDIV4;
+        camNear = 0.1f;
+        camFar = 100.0f;
+        //Display
+        isGridVisible = true;
+    }
+
+    ImGui::End();
 }
 

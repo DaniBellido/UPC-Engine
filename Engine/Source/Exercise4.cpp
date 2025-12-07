@@ -86,20 +86,17 @@ void Exercise4::render()
 
 
     // ------------------------------------------------------------
-    // GRID
+    // GRID & AXIS
     // ------------------------------------------------------------
 
-    if (isGridVisible) 
-    {
-        dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray);
-        dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f);
-    }
+    if (isGridVisible) {dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray);}
+    if (isAxisVisible) { dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f); }
 
     // ------------------------------------------------------------
     // Draw the geometry
     // ------------------------------------------------------------
 
-    commandList->DrawIndexedInstanced(36, 1, 0, 0, 0);
+    if (isGeoVisible) { commandList->DrawIndexedInstanced(36, 1, 0, 0, 0); }
 
     app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
 
@@ -231,11 +228,11 @@ bool Exercise4::createRootSignature()
 
 bool Exercise4::createPSO()
 {
-    D3D12_INPUT_ELEMENT_DESC inputLayout[] = { 
-        {"MY_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, 
+    D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
+        {"MY_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"TEXCOORD",    0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},  
-        {"COLOR",       0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}  
+        {"TEXCOORD",    0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"COLOR",       0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
     };
 
     auto dataVS = DX::ReadData(L"Exercise4VS.cso");
@@ -334,6 +331,10 @@ void Exercise4::ExerciseMenu()
     if (ImGui::CollapsingHeader("Dsiplay", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::Checkbox("Show grid", &isGridVisible);
+        ImGui::SameLine();
+        ImGui::Checkbox("Show axis", &isAxisVisible);
+        ImGui::SameLine();
+        ImGui::Checkbox("Show model", &isGeoVisible);
     }
 
     ImGui::Separator();
@@ -352,6 +353,8 @@ void Exercise4::ExerciseMenu()
         camFar = 100.0f;
         //Display
         isGridVisible = true;
+        isAxisVisible = true;
+        isGeoVisible = true;
     }
 
     ImGui::End();

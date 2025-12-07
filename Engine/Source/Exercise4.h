@@ -28,6 +28,8 @@ private:
 	float camFar = 100.0f;
 
 	bool isGridVisible = true;
+	bool isAxisVisible = true;
+	bool isGeoVisible = true;
 
 
 	bool createVertexBuffer();

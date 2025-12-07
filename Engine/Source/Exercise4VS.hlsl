@@ -5,16 +5,16 @@ cbuffer Transforms : register(b0)
 
 struct VSInput
 {
-    float3 position : MY_POSITION; // ? Coincide con tu input layout
-    float2 texCoord : TEXCOORD; // ? Coincide con tu input layout  
-    float4 color : COLOR; // ? NUEVO para colores por cara
+    float3 position : MY_POSITION; 
+    float2 texCoord : TEXCOORD; 
+    float4 color : COLOR; 
 };
 
 struct PSInput
 {
     float4 position : SV_POSITION;
     float2 texCoord : TEXCOORD;
-    float4 color : COLOR; // ? Pasar color al pixel shader
+    float4 color : COLOR; 
 };
 
 PSInput main(VSInput input)
@@ -22,6 +22,6 @@ PSInput main(VSInput input)
     PSInput output;
     output.position = mul(float4(input.position, 1.0f), mvp);
     output.texCoord = input.texCoord;
-    output.color = input.color; // ? Pasar el color interpolado
+    output.color = input.color; 
     return output;
 }

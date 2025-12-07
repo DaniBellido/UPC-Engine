@@ -35,5 +35,6 @@ public:
 private:
 
 	ComPtr<ID3D12Resource> createTextureFromImage(const ScratchImage& image, const char* name);
+	ComPtr<ID3D12Resource> getUploadHeap(size_t size);
 };
 

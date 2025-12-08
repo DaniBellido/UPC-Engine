@@ -15,6 +15,10 @@ private:
 	ComPtr<ID3D12Resource> indexBuffer;
 	D3D12_INDEX_BUFFER_VIEW indexBufferView;
 
+	ComPtr<ID3D12Resource> texture;
+	UINT textureIndex = UINT_MAX;
+
+
 	float rotationX, rotationY, rotationZ = 0.0f;
 	float scaleX{ 1.0f }, scaleY{ 1.0f }, scaleZ{1.0f};
 	float positionX, positionY, positionZ = 0.0f;

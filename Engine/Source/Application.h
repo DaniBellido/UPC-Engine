@@ -9,6 +9,7 @@
 class Module;
 class D3D12Module;
 class ResourcesModule;
+class ShaderDescriptorsModule;
 
 class DebugDrawPass;
 
@@ -25,6 +26,8 @@ public:
 
     D3D12Module* getD3D12() { return d3d12; }
     ResourcesModule* getResources() { return resources; }
+    ShaderDescriptorsModule* getShaderDescriptors() { return shaderDescriptors; }
+
     DebugDrawPass* getDebugDrawPass() { return debugDrawPass.get(); }
 
     float                       getFPS() const { return 1000.0f * float(MAX_FPS_TICKS) / tickSum; }
@@ -42,6 +45,7 @@ private:
 
     D3D12Module* d3d12 = nullptr;
     ResourcesModule* resources = nullptr;
+    ShaderDescriptorsModule* shaderDescriptors = nullptr;
 
     std::unique_ptr<DebugDrawPass> debugDrawPass;
 

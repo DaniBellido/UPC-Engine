@@ -183,13 +183,16 @@ ComPtr<ID3D12Resource> ResourcesModule::createTextureFromImage(const ScratchImag
 
 	if (metaData.dimension == TEX_DIMENSION_TEXTURE2D)
 	{
+		// Define texture properties and initialise descriptor using metadata from ScratchImage
 		D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(metaData.format, UINT64(metaData.width), UINT(metaData.height),
 			UINT16(metaData.arraySize), UINT16(metaData.mipLevels));
 
+		// Creating texture resource allocated in Default Heap (GPU)
 		CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		bool ok = SUCCEEDED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
 			D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&texture)));
 
+		// Staging Buffer to transfer data to Upload Heap
 		ComPtr<ID3D12Resource> upload;
 		if (ok)
 		{
@@ -199,7 +202,8 @@ ComPtr<ID3D12Resource> ResourcesModule::createTextureFromImage(const ScratchImag
 		}
 
 		if (ok)
-		{
+		{   
+			// Copying Texture Data
 			std::vector<D3D12_SUBRESOURCE_DATA> subData;
 			subData.reserve(image.GetImageCount());
 
@@ -220,6 +224,7 @@ ComPtr<ID3D12Resource> ResourcesModule::createTextureFromImage(const ScratchImag
 
 		if (ok)
 		{
+			// Texture State Transition
 			CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 			commandList->ResourceBarrier(1, &barrier);
 			commandList->Close();

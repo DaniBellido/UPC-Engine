@@ -4,6 +4,7 @@
 #include "D3D12Module.h"
 #include "EditorModule.h"
 #include "ResourcesModule.h"
+#include "ShaderDescriptorsModule.h"
 #include "ExerciseModule.h"
 
 
@@ -16,6 +17,7 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
     modules.push_back(new ModuleInput((HWND)hWnd));
     modules.push_back(d3d12 = new D3D12Module((HWND)hWnd));
     modules.push_back(resources = new ResourcesModule());
+    modules.push_back(shaderDescriptors = new ShaderDescriptorsModule());
 
 
     // Rendering exercises

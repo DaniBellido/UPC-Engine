@@ -3,6 +3,7 @@
 
 #include "D3D12Module.h"
 #include "ResourcesModule.h"
+#include "ShaderDescriptorsModule.h"
 #include "Application.h"
 
 #include <d3d12.h>
@@ -12,10 +13,38 @@
 
 bool Exercise4::init()
 {
-    createVertexBuffer();
-    createIndexBuffer();
-    createRootSignature();
-    createPSO();
+    if (!createVertexBuffer()) 
+    {
+        Logger::Err("Exercise 4: VertexBuffer Failed");
+        return false;
+    }
+
+    if (!createIndexBuffer()) 
+    {
+        Logger::Err("Exercise 4: IndexBuffer Failed");
+        return false;
+    }
+
+    if (!createRootSignature()) 
+    {
+        Logger::Err("Exercise 4: RootSignature Failed");
+        return false;
+    }
+
+    if (!createPSO()) 
+    {
+        Logger::Err("Exercise 4: PSO Failed");
+        return false;
+    }
+
+    texture = app->getResources()->createTextureFromFile(L"Assets/Textures/dog.dds");
+    ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
+    textureIndex = shaders->createSRV(texture.Get());
+
+    if (texture) 
+    {
+        Logger::Log("TEXTURE OK!");
+    }
 
     return true;
 }
@@ -82,7 +111,14 @@ void Exercise4::render()
     SimpleMath::Matrix proj = SimpleMath::Matrix::CreatePerspectiveFieldOfView(camFov, aspect, camNear, camFar);
 
     mvpMatrix = (model * view * proj).Transpose();
-    commandList->SetGraphicsRoot32BitConstants(0, 64, &mvpMatrix, 0);
+    commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
+
+    // ------------------------------------------------------------
+    // BIND TEXTURES
+    // ------------------------------------------------------------
+    ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
+    D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = shaders->getGPUHandle(textureIndex);
+    commandList->SetGraphicsRootDescriptorTable(1, gpuHandle);
 
 
     // ------------------------------------------------------------
@@ -201,38 +237,74 @@ bool Exercise4::createIndexBuffer()
 
 bool Exercise4::createRootSignature()
 {
-    // Aquí defines un root parameter de constantes con el tamaño del matrix (16 floats)
-    CD3DX12_ROOT_PARAMETER rootParameter;
-    //rootParameter.InitAsConstants(sizeof(SimpleMath::Matrix) / sizeof(UINT32), 0); // 0 = register b0
-    rootParameter.InitAsConstants(64, 0);  // 64 DWORDs para matriz 4x4
+    // b0: 16 constantes (float4x4)
+// t0: textura
+// s0: sampler
 
-    CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc;
-    rootSignatureDesc.Init(1, &rootParameter, 0, nullptr,
-        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+    CD3DX12_ROOT_PARAMETER rootParameters[3];
+    CD3DX12_DESCRIPTOR_RANGE srvRange;
+    CD3DX12_DESCRIPTOR_RANGE sampRange;
+
+    // Root constants para la matriz (16 x 32-bit, en b0)
+    rootParameters[0].InitAsConstants(16, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+
+    // SRV table para t0
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); // 1 SRV, t0
+    rootParameters[1].InitAsDescriptorTable(1, &srvRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+    // Sampler table para s0
+    sampRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0); // 1 sampler, s0
+    rootParameters[2].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+    CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
+        _countof(rootParameters),
+        rootParameters,
+        0,
+        nullptr,
+        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+    );
 
     ComPtr<ID3DBlob> signatureBlob;
     ComPtr<ID3DBlob> errorBlob;
-    HRESULT hr = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1,
-        &signatureBlob, &errorBlob);
-    if (FAILED(hr)) {
-        // Manejo error
+
+    HRESULT hr = D3D12SerializeRootSignature(
+        &rootSignatureDesc,
+        D3D_ROOT_SIGNATURE_VERSION_1,
+        &signatureBlob,
+        &errorBlob
+    );
+
+    if (FAILED(hr))
+    {
+        if (errorBlob)
+        {
+            Logger::Err((char*)errorBlob->GetBufferPointer());
+        }
         return false;
     }
 
-    hr = app->getD3D12()->getDevice()->CreateRootSignature(0,
+    hr = app->getD3D12()->getDevice()->CreateRootSignature(
+        0,
         signatureBlob->GetBufferPointer(),
         signatureBlob->GetBufferSize(),
-        IID_PPV_ARGS(&rootSignature));
-    return SUCCEEDED(hr);
+        IID_PPV_ARGS(&rootSignature)
+    );
+
+    if (FAILED(hr))
+    {
+        Logger::Err("CreateRootSignature failed");
+        return false;
+    }
+
+    return true;
 }
 
 bool Exercise4::createPSO()
 {
     D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-        {"MY_POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"TEXCOORD",    0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-        {"COLOR",       0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 20, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
     };
 
     auto dataVS = DX::ReadData(L"Exercise4VS.cso");

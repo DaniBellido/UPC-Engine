@@ -175,76 +175,81 @@ ComPtr<ID3D12Resource> ResourcesModule::createTextureFromImage(const ScratchImag
 {
 	D3D12Module* d3d12 = app->getD3D12();
 	ID3D12Device2* device = d3d12->getDevice();
+	ID3D12CommandQueue* queue = d3d12->getCommandQueue();
 
 	ComPtr<ID3D12Resource> texture;
 	const TexMetadata& metaData = image.GetMetadata();
 
-	_ASSERTE(metaData.dimension == TEX_DIMENSION_TEXTURE2D);
+	if (metaData.dimension != TEX_DIMENSION_TEXTURE2D)
+		return nullptr;
 
-	if (metaData.dimension == TEX_DIMENSION_TEXTURE2D)
+	// 1) crear textura en DEFAULT
+	D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(
+		metaData.format,
+		UINT64(metaData.width),
+		UINT(metaData.height),
+		UINT16(metaData.arraySize),
+		UINT16(metaData.mipLevels)
+	);
+
+	CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
+	if (FAILED(device->CreateCommittedResource(
+		&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
+		D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&texture))))
+		return nullptr;
+
+	// 2) upload heap
+	ComPtr<ID3D12Resource> upload = getUploadHeap(
+		GetRequiredIntermediateSize(texture.Get(), 0, UINT(image.GetImageCount())));
+	if (!upload) return nullptr;
+
+	// 3) rellenar subresources
+	std::vector<D3D12_SUBRESOURCE_DATA> subData;
+	subData.reserve(image.GetImageCount());
+	for (size_t item = 0; item < metaData.arraySize; ++item)
 	{
-		// Define texture properties and initialise descriptor using metadata from ScratchImage
-		D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(metaData.format, UINT64(metaData.width), UINT(metaData.height),
-			UINT16(metaData.arraySize), UINT16(metaData.mipLevels));
-
-		// Creating texture resource allocated in Default Heap (GPU)
-		CD3DX12_HEAP_PROPERTIES heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		bool ok = SUCCEEDED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
-			D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&texture)));
-
-		// Staging Buffer to transfer data to Upload Heap
-		ComPtr<ID3D12Resource> upload;
-		if (ok)
+		for (size_t level = 0; level < metaData.mipLevels; ++level)
 		{
-			_ASSERTE(metaData.mipLevels * metaData.arraySize == image.GetImageCount());
-			upload = getUploadHeap(GetRequiredIntermediateSize(texture.Get(), 0, UINT(image.GetImageCount())));
-			ok = upload != nullptr;
-		}
-
-		if (ok)
-		{   
-			// Copying Texture Data
-			std::vector<D3D12_SUBRESOURCE_DATA> subData;
-			subData.reserve(image.GetImageCount());
-
-			for (size_t item = 0; item < metaData.arraySize; ++item)
-			{
-				for (size_t level = 0; level < metaData.mipLevels; ++level)
-				{
-					const DirectX::Image* subImg = image.GetImage(level, item, 0);
-
-					D3D12_SUBRESOURCE_DATA data = { subImg->pixels, (LONG_PTR)subImg->rowPitch, (LONG_PTR)subImg->slicePitch };
-
-					subData.push_back(data);
-				}
-			}
-
-			ok = UpdateSubresources(commandList.Get(), texture.Get(), upload.Get(), 0, 0, UINT(image.GetImageCount()), subData.data()) != 0;
-		}
-
-		if (ok)
-		{
-			// Texture State Transition
-			CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-			commandList->ResourceBarrier(1, &barrier);
-			commandList->Close();
-
-			ID3D12CommandList* commandLists[] = { commandList.Get() };
-			ID3D12CommandQueue* queue = d3d12->getCommandQueue();
-
-			queue->ExecuteCommandLists(UINT(std::size(commandLists)), commandLists);
-
-			d3d12->waitForGPU();
-
-			commandAllocator->Reset();
-			ok = SUCCEEDED(commandList->Reset(commandAllocator.Get(), nullptr));
-
-			texture->SetName(std::wstring(name, name + strlen(name)).c_str());
-			return texture;
+			const DirectX::Image* subImg = image.GetImage(level, item, 0);
+			D3D12_SUBRESOURCE_DATA data = {
+				subImg->pixels,
+				LONG_PTR(subImg->rowPitch),
+				LONG_PTR(subImg->slicePitch)
+			};
+			subData.push_back(data);
 		}
 	}
 
-	return ComPtr<ID3D12Resource>();
+	// 4) IMPORTANTE: reset antes de usar commandList del ResourcesModule
+	commandAllocator->Reset();
+	commandList->Reset(commandAllocator.Get(), nullptr);
+
+	// 5) copiar datos
+	UpdateSubresources(
+		commandList.Get(),
+		texture.Get(),
+		upload.Get(),
+		0, 0,
+		UINT(subData.size()),
+		subData.data()
+	);
+
+	// 6) transición de estado
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+		texture.Get(),
+		D3D12_RESOURCE_STATE_COPY_DEST,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+	);
+	commandList->ResourceBarrier(1, &barrier);
+
+	// 7) cerrar y ejecutar
+	commandList->Close();
+	ID3D12CommandList* lists[] = { commandList.Get() };
+	queue->ExecuteCommandLists(1, lists);
+	d3d12->waitForGPU();
+
+	texture->SetName(std::wstring(name, name + strlen(name)).c_str());
+	return texture;
 }
 
 ComPtr<ID3D12Resource> ResourcesModule::getUploadHeap(size_t size)

@@ -118,6 +118,8 @@ void Exercise4::render()
     // ------------------------------------------------------------
     ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
     D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = shaders->getGPUHandle(textureIndex);
+
+
     commandList->SetGraphicsRootDescriptorTable(1, gpuHandle);
 
 

@@ -91,7 +91,9 @@
     <ClCompile Include="Exercise4.cpp">
       <Filter>Exercises</Filter>
     </ClCompile>
-    <ClCompile Include="ShaderDescriptorsModule.cpp" />
+    <ClCompile Include="ShaderDescriptorsModule.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -199,7 +201,9 @@
     <ClInclude Include="Exercise4.h">
       <Filter>Exercises</Filter>
     </ClInclude>
-    <ClInclude Include="ShaderDescriptorsModule.h" />
+    <ClInclude Include="ShaderDescriptorsModule.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">
@@ -274,6 +278,12 @@
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Exercise3PS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Exercise4VS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Exercise4PS.hlsl">
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
   </ItemGroup>

@@ -4,6 +4,7 @@
 #include "D3D12Module.h"
 #include "ResourcesModule.h"
 #include "ShaderDescriptorsModule.h"
+#include "SamplersModule.h"
 #include "Application.h"
 
 #include <d3d12.h>
@@ -45,6 +46,34 @@ bool Exercise4::init()
     {
         Logger::Log("TEXTURE OK!");
     }
+
+    SamplersModule* samplers = app->getSamplers();
+
+    D3D12_SAMPLER_DESC samp = {};
+    samp.MinLOD = 0.0f;
+    samp.MaxLOD = D3D12_FLOAT32_MAX;
+    samp.MipLODBias = 0.0f;
+    samp.MaxAnisotropy = 1;
+    samp.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+    samp.BorderColor[0] = samp.BorderColor[1] = samp.BorderColor[2] = samp.BorderColor[3] = 0.0f;
+
+    // i) Wrap + Bilinear (slot 0)
+    samp.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    samp.AddressU = samp.AddressV = samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    samplerIndices[0] = samplers->createSampler(samp);
+
+    // ii) Clamp + Bilinear (slot 1)
+    samp.AddressU = samp.AddressV = samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    samplerIndices[1] = samplers->createSampler(samp);
+
+    // iii) Wrap + Point (slot 2)
+    samp.AddressU = samp.AddressV = samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    samp.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
+    samplerIndices[2] = samplers->createSampler(samp);
+
+    // iv) Clamp + Point (slot 3)
+    samp.AddressU = samp.AddressV = samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+    samplerIndices[3] = samplers->createSampler(samp);
 
     return true;
 }
@@ -117,23 +146,32 @@ void Exercise4::render()
     // BIND TEXTURES
     // ------------------------------------------------------------
     ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
-    ID3D12DescriptorHeap* heaps[] = { shaders->getHeap() };
-    commandList->SetDescriptorHeaps(1, heaps);
-    D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = shaders->getGPUHandle(textureIndex);
-    commandList->SetGraphicsRootDescriptorTable(1, gpuHandle);
+    SamplersModule* samplers = app->getSamplers();
+
+    ID3D12DescriptorHeap* heaps[] = {
+        shaders->getHeap(),     // t0: texture
+        samplers->getHeap()     // s0: sampler
+    };
+    commandList->SetDescriptorHeaps(2, heaps);  // 2 heaps!
+
+    // t0: texture
+    D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(textureIndex);
+    commandList->SetGraphicsRootDescriptorTable(1, texHandle);
+
+    // s0: sampler SEGÚN samplerMode
+    D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle((UINT)samplerMode);
+    commandList->SetGraphicsRootDescriptorTable(2, sampHandle); 
 
 
     // ------------------------------------------------------------
     // GRID & AXIS
     // ------------------------------------------------------------
-
     if (isGridVisible) {dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray);}
     if (isAxisVisible) { dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f); }
 
     // ------------------------------------------------------------
     // Draw the geometry
     // ------------------------------------------------------------
-
     if (isGeoVisible) { commandList->DrawIndexedInstanced(36, 1, 0, 0, 0); }
 
     app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
@@ -152,10 +190,10 @@ bool Exercise4::createVertexBuffer()
     static Vertex vertices[24] =
     {
         // Front face (Blue)     
-     { Vector3(-1.0f, -1.0f,  1.0f), Vector2(0.0f, 1.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-     { Vector3(-1.0f,  1.0f,  1.0f), Vector2(0.0f, 0.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-     { Vector3(1.0f,  1.0f,  1.0f), Vector2(1.0f, 0.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-     { Vector3(1.0f, -1.0f,  1.0f), Vector2(1.0f, 1.0f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
+     { Vector3(-1.0f, -1.0f,  1.0f), Vector2(-0.5f, 2.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
+     { Vector3(-1.0f,  1.0f,  1.0f), Vector2(-0.5f, -0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
+     { Vector3(1.0f,  1.0f,  1.0f), Vector2(2.5f, -0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
+     { Vector3(1.0f, -1.0f,  1.0f), Vector2(2.5f, 2.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
 
      // Back face (Red)
      { Vector3(1.0f, -1.0f, -1.0f), Vector2(0.0f, 1.0f), Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
@@ -309,8 +347,7 @@ bool Exercise4::createPSO()
     // Input Layout: POSITION (vec3) + TEXCOORD (vec2)
     // ------------------------------------------------------------
     D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
-        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
-        D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
     };
 
@@ -390,6 +427,14 @@ void Exercise4::ExerciseMenu()
         {
             scaleX = scaleY = scaleZ = 1.0f;
         }
+
+    }
+
+    if (ImGui::CollapsingHeader("Texture Filtering", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        const char* samplerNames[] = { "Wrap+Bilinear", "Clamp+Bilinear", "Wrap+Point", "Clamp+Point" };
+        ImGui::Text("Sampler"); ImGui::SameLine(85.0f);
+        ImGui::Combo("##Sampler", &samplerMode, samplerNames, IM_ARRAYSIZE(samplerNames));
     }
 
     if (ImGui::CollapsingHeader("View", ImGuiTreeNodeFlags_DefaultOpen)) 
@@ -431,6 +476,8 @@ void Exercise4::ExerciseMenu()
         positionX = positionY = positionZ = 0.0f;
         rotationX = rotationY = rotationZ = 0.0f;
         scaleX = scaleY = scaleZ = 1.0f;
+        // Sampler reset
+        samplerMode = 0;
         // Camera resets  
         camDistance = 5.0f;
         camHeight = 3.0f;

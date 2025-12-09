@@ -195,6 +195,7 @@
     <ClInclude Include="ReadData.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ResourcesModule.h" />
+    <ClInclude Include="SamplersModule.h" />
     <ClInclude Include="ShaderDescriptorsModule.h" />
     <ClInclude Include="SimpleMath.h" />
     <ClInclude Include="targetver.h" />
@@ -294,6 +295,7 @@
     <ClCompile Include="ModuleInput.cpp" />
     <ClCompile Include="Mouse.cpp" />
     <ClCompile Include="ResourcesModule.cpp" />
+    <ClCompile Include="SamplersModule.cpp" />
     <ClCompile Include="ShaderDescriptorsModule.cpp" />
     <ClCompile Include="SimpleMath.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

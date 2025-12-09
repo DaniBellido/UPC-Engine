@@ -18,6 +18,9 @@ private:
 	ComPtr<ID3D12Resource> texture;
 	UINT textureIndex = UINT_MAX;
 
+	uint32_t samplerIndices[4] = { 0,1,2,3 };
+	int samplerMode = 0; 
+
 
 	float rotationX, rotationY, rotationZ = 0.0f;
 	float scaleX{ 1.0f }, scaleY{ 1.0f }, scaleZ{1.0f};

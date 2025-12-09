@@ -22,8 +22,15 @@ bool ResourcesModule::init()
 	D3D12Module* d3d12 = app->getD3D12();
 	ID3D12Device4* device = d3d12->getDevice();
 
+	// ------------------------------------------------------------
+	// Create command allocator and command list for resource uploads
+	// ------------------------------------------------------------
 	device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator));
 	device->CreateCommandList1(0, D3D12_COMMAND_LIST_TYPE_DIRECT, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&commandList));
+
+	// ------------------------------------------------------------
+	// Initial reset/close (ready for first texture/buffer upload)
+	// ------------------------------------------------------------
 	commandList->Reset(commandAllocator.Get(), nullptr);
 	commandList->Close();
 
@@ -142,16 +149,6 @@ ComPtr<ID3D12Resource> ResourcesModule::createDefaultBuffer(const void* data, si
 	return vertexBuffer;
 }
 
-ComPtr<ID3D12Resource> ResourcesModule::createRawTexture2D(const void* data, size_t rowSize, size_t width, size_t height, DXGI_FORMAT format)
-{
-	return ComPtr<ID3D12Resource>();
-}
-
-ComPtr<ID3D12Resource> ResourcesModule::createTextureFromMemory(const void* data, size_t size, const char* name)
-{
-	return ComPtr<ID3D12Resource>();
-}
-
 ComPtr<ID3D12Resource> ResourcesModule::createTextureFromFile(const std::filesystem::path& path, bool defaultSRGB)
 {
 	const wchar_t* fileName = path.c_str();
@@ -183,7 +180,9 @@ ComPtr<ID3D12Resource> ResourcesModule::createTextureFromImage(const ScratchImag
 	if (metaData.dimension != TEX_DIMENSION_TEXTURE2D)
 		return nullptr;
 
-	// 1) crear textura en DEFAULT
+	// ------------------------------------------------------------
+	// Create texture resource in DEFAULT heap (GPU optimized)
+	// ------------------------------------------------------------
 	D3D12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Tex2D(
 		metaData.format,
 		UINT64(metaData.width),
@@ -193,17 +192,19 @@ ComPtr<ID3D12Resource> ResourcesModule::createTextureFromImage(const ScratchImag
 	);
 
 	CD3DX12_HEAP_PROPERTIES heapProps(D3D12_HEAP_TYPE_DEFAULT);
-	if (FAILED(device->CreateCommittedResource(
-		&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
-		D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&texture))))
+	if (FAILED(device->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&texture))))
 		return nullptr;
 
-	// 2) upload heap
+	// ------------------------------------------------------------
+	// Create upload heap buffer (CPU -> GPU transfer)
+	// ------------------------------------------------------------
 	ComPtr<ID3D12Resource> upload = getUploadHeap(
 		GetRequiredIntermediateSize(texture.Get(), 0, UINT(image.GetImageCount())));
 	if (!upload) return nullptr;
 
-	// 3) rellenar subresources
+	// ------------------------------------------------------------
+	// Prepare subresource data (all mip levels, array slices)
+	// ------------------------------------------------------------
 	std::vector<D3D12_SUBRESOURCE_DATA> subData;
 	subData.reserve(image.GetImageCount());
 	for (size_t item = 0; item < metaData.arraySize; ++item)
@@ -220,34 +221,34 @@ ComPtr<ID3D12Resource> ResourcesModule::createTextureFromImage(const ScratchImag
 		}
 	}
 
-	// 4) IMPORTANTE: reset antes de usar commandList del ResourcesModule
+	// ------------------------------------------------------------
+	// Reset command list for texture upload
+	// ------------------------------------------------------------
 	commandAllocator->Reset();
 	commandList->Reset(commandAllocator.Get(), nullptr);
 
-	// 5) copiar datos
-	UpdateSubresources(
-		commandList.Get(),
-		texture.Get(),
-		upload.Get(),
-		0, 0,
-		UINT(subData.size()),
-		subData.data()
-	);
+	// ------------------------------------------------------------
+	// Copy texture data to GPU (async GPU operation)
+	// ------------------------------------------------------------
+	UpdateSubresources(commandList.Get(), texture.Get(), upload.Get(), 0, 0, UINT(subData.size()), subData.data());
 
-	// 6) transición de estado
-	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-		texture.Get(),
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-	);
+	// ------------------------------------------------------------
+	// Transition texture: COPY_DEST -> PIXEL_SHADER_RESOURCE
+	// ------------------------------------------------------------
+	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(texture.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	commandList->ResourceBarrier(1, &barrier);
 
-	// 7) cerrar y ejecutar
+	// ------------------------------------------------------------
+	// Execute command list and wait for GPU
+	// ------------------------------------------------------------
 	commandList->Close();
 	ID3D12CommandList* lists[] = { commandList.Get() };
 	queue->ExecuteCommandLists(1, lists);
 	d3d12->waitForGPU();
 
+	// ------------------------------------------------------------
+	// Set debug name for GPU debugging tools
+	// ------------------------------------------------------------
 	texture->SetName(std::wstring(name, name + strlen(name)).c_str());
 	return texture;
 }

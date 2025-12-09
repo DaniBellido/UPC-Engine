@@ -117,9 +117,9 @@ void Exercise4::render()
     // BIND TEXTURES
     // ------------------------------------------------------------
     ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
+    ID3D12DescriptorHeap* heaps[] = { shaders->getHeap() };
+    commandList->SetDescriptorHeaps(1, heaps);
     D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = shaders->getGPUHandle(textureIndex);
-
-
     commandList->SetGraphicsRootDescriptorTable(1, gpuHandle);
 
 
@@ -139,7 +139,6 @@ void Exercise4::render()
     app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
 
 }
-
 
 bool Exercise4::createVertexBuffer()
 {
@@ -239,42 +238,42 @@ bool Exercise4::createIndexBuffer()
 
 bool Exercise4::createRootSignature()
 {
-    // b0: 16 constantes (float4x4)
-// t0: textura
-// s0: sampler
+    // b0: 16 constants (float4x4 matrix for Vertex Shader)
+    // t0: texture SRV descriptor table (Pixel Shader)
+    // s0: sampler descriptor table (Pixel Shader)
 
     CD3DX12_ROOT_PARAMETER rootParameters[3];
     CD3DX12_DESCRIPTOR_RANGE srvRange;
     CD3DX12_DESCRIPTOR_RANGE sampRange;
 
-    // Root constants para la matriz (16 x 32-bit, en b0)
+    // ------------------------------------------------------------  
+    // Root constants slot b0: 16x32-bit floats = float4x4 MVP matrix
+    // ------------------------------------------------------------
     rootParameters[0].InitAsConstants(16, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 
-    // SRV table para t0
+    // ------------------------------------------------------------
+   // SRV descriptor table slot t0: 1 texture SRV 
+   // ------------------------------------------------------------
     srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); // 1 SRV, t0
     rootParameters[1].InitAsDescriptorTable(1, &srvRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
-    // Sampler table para s0
+    // ------------------------------------------------------------
+    // Sampler descriptor table slot s0: 1 sampler
+    // ------------------------------------------------------------
     sampRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0); // 1 sampler, s0
     rootParameters[2].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
+    // ------------------------------------------------------------
+    // Create and serialize root signature
+    // ------------------------------------------------------------
     CD3DX12_ROOT_SIGNATURE_DESC rootSignatureDesc(
-        _countof(rootParameters),
-        rootParameters,
-        0,
-        nullptr,
-        D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-    );
+        _countof(rootParameters), rootParameters, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     ComPtr<ID3DBlob> signatureBlob;
     ComPtr<ID3DBlob> errorBlob;
 
     HRESULT hr = D3D12SerializeRootSignature(
-        &rootSignatureDesc,
-        D3D_ROOT_SIGNATURE_VERSION_1,
-        &signatureBlob,
-        &errorBlob
-    );
+        &rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signatureBlob, &errorBlob);
 
     if (FAILED(hr))
     {
@@ -285,6 +284,9 @@ bool Exercise4::createRootSignature()
         return false;
     }
 
+    // ------------------------------------------------------------
+    // Create root signature object
+    // ------------------------------------------------------------
     hr = app->getD3D12()->getDevice()->CreateRootSignature(
         0,
         signatureBlob->GetBufferPointer(),
@@ -303,12 +305,18 @@ bool Exercise4::createRootSignature()
 
 bool Exercise4::createPSO()
 {
+    // ------------------------------------------------------------
+    // Input Layout: POSITION (vec3) + TEXCOORD (vec2)
+    // ------------------------------------------------------------
     D3D12_INPUT_ELEMENT_DESC inputLayout[] = {
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,
         D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
         {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
     };
 
+    // ------------------------------------------------------------
+    // Load compiled shaders (.cso files)
+    // ------------------------------------------------------------
     auto dataVS = DX::ReadData(L"Exercise4VS.cso");
     auto dataPS = DX::ReadData(L"Exercise4PS.cso");
 
@@ -321,6 +329,9 @@ bool Exercise4::createPSO()
         Logger::Log("Exercise4: VS Data & PS Data: OK");
     }
 
+    // ------------------------------------------------------------
+    // Pipeline State Object configuration
+    // ------------------------------------------------------------
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
     psoDesc.InputLayout = { inputLayout, sizeof(inputLayout) / sizeof(D3D12_INPUT_ELEMENT_DESC) };  // the structure describing our input layout
     psoDesc.pRootSignature = rootSignature.Get();                                                   // the root signature that describes the input data this pso needs
@@ -336,7 +347,9 @@ bool Exercise4::createPSO()
     psoDesc.NumRenderTargets = 1;                                                                   // we are only binding one render target
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);  
 
-    // create the pso
+    // ------------------------------------------------------------
+    // Create Pipeline State Object
+    // ------------------------------------------------------------
     return SUCCEEDED(app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso)));
 }
 

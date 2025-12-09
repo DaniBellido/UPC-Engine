@@ -469,6 +469,32 @@ void Exercise4::ExerciseMenu()
         ImGui::Checkbox("Show model", &isGeoVisible);
     }
 
+    if (ImGui::CollapsingHeader("Performance", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        float fps = app->getFPS();
+        float ms = (fps > 0.0f) ? 1000.0f / fps : 0.0f;
+
+        // Título FPS grande y coloreado
+        ImGui::TextColored(ImVec4(0.2f, 0.8f, 1.0f, 1.0f), "FPS: %.1f", fps);
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), " (%.1f ms)", ms);
+
+        // Barra de carga coloreada
+        float fpsNorm = ImClamp(fps / 144.0f, 0.0f, 1.0f);
+        ImVec4 barColor = ImLerp(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), ImVec4(0.3f, 1.0f, 0.3f, 1.0f), fpsNorm);
+        ImGui::PushStyleColor(ImGuiCol_PlotHistogram, barColor);
+        ImGui::ProgressBar(fpsNorm, ImVec2(-1, 12), "GPU Load");
+        ImGui::PopStyleColor();
+
+        // Gráfico FPS historial
+        static float history[90] = {};
+        static int historyOffset = 0;
+        history[historyOffset] = fps;
+        historyOffset = (historyOffset + 1) % IM_ARRAYSIZE(history);
+        ImGui::PlotLines("##fps", history, IM_ARRAYSIZE(history), historyOffset,
+            NULL, 30.0f, 144.0f, ImVec2(0, 40));
+    }
+
     ImGui::Separator();
     if (ImGui::Button("Reset All", ImVec2(ImGui::GetContentRegionAvail().x, 0))) 
     {

@@ -11,6 +11,9 @@ class CameraModule : public Module
 	Vector3 right;      // perpendicular direction
 	Vector3 up = Vector3::Up; // Camera always up
 	float speed = 5.0f; 
+	float yaw = 0.0f;
+	float pitch = 0.0f;
+	float mouseSensitivity = 0.002f;
 
 public:
 	CameraModule();

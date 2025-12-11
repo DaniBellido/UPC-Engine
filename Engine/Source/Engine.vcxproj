@@ -171,6 +171,7 @@
     <ClInclude Include="3rdParty\imgui-docking\imgui_internal.h" />
     <ClInclude Include="3rdParty\ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="Application.h" />
+    <ClInclude Include="CameraModule.h" />
     <ClInclude Include="ConsoleModule.h" />
     <ClInclude Include="D3D12Module.h" />
     <ClInclude Include="DebugDrawPass.h" />
@@ -264,6 +265,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="CameraModule.cpp" />
     <ClCompile Include="ConsoleModule.cpp" />
     <ClCompile Include="D3D12Module.cpp" />
     <ClCompile Include="DebugDrawPass.cpp">

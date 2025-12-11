@@ -11,6 +11,7 @@ class D3D12Module;
 class ResourcesModule;
 class ShaderDescriptorsModule;
 class SamplersModule;
+class CameraModule;
 
 class DebugDrawPass;
 
@@ -29,6 +30,7 @@ public:
     ResourcesModule* getResources() { return resources; }
     ShaderDescriptorsModule* getShaderDescriptors() { return shaderDescriptors; }
     SamplersModule* getSamplers() { return samplers; }
+    CameraModule* getCamera() { return camera; }
 
     DebugDrawPass* getDebugDrawPass() { return debugDrawPass.get(); }
 
@@ -49,6 +51,7 @@ private:
     ResourcesModule* resources = nullptr;
     ShaderDescriptorsModule* shaderDescriptors = nullptr;
     SamplersModule* samplers = nullptr;
+    CameraModule* camera = nullptr;
 
     std::unique_ptr<DebugDrawPass> debugDrawPass;
 

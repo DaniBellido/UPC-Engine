@@ -5,6 +5,7 @@
 #include "ResourcesModule.h"
 #include "ShaderDescriptorsModule.h"
 #include "SamplersModule.h"
+#include "CameraModule.h"
 #include "Application.h"
 
 #include <d3d12.h>
@@ -80,14 +81,15 @@ bool Exercise4::init()
 
 void Exercise4::render()
 {
-    // ----------------------------------------------------------------
-    // ImGui Window
-    // ----------------------------------------------------------------
-    ExerciseMenu();
-
     // ------------------------------------------------------------
     D3D12Module* d3d12 = app->getD3D12();
     ID3D12GraphicsCommandList* commandList = d3d12->getCommandList();
+    CameraModule* camera = app->getCamera();
+
+    // ----------------------------------------------------------------
+    // ImGui Window
+    // ----------------------------------------------------------------
+    ExerciseMenu(camera);
 
     // ------------------------------------------------------------
     // Set viewport and scissor rect
@@ -133,8 +135,7 @@ void Exercise4::render()
     SimpleMath::Matrix position = SimpleMath::Matrix::CreateTranslation(positionX, positionY, positionZ);
 
     SimpleMath::Matrix model = scale * rotX * rotY * rotZ * position;
-    SimpleMath::Matrix view = SimpleMath::Matrix::CreateLookAt(
-        SimpleMath::Vector3(camSide, camHeight, camDistance), SimpleMath::Vector3::Zero, SimpleMath::Vector3::Up);
+    SimpleMath::Matrix view = camera->getView();
 
     float aspect = float(d3d12->getWindowWidth()) / float(d3d12->getWindowHeight());
     SimpleMath::Matrix proj = SimpleMath::Matrix::CreatePerspectiveFieldOfView(camFov, aspect, camNear, camFar);
@@ -152,13 +153,13 @@ void Exercise4::render()
         shaders->getHeap(),     // t0: texture
         samplers->getHeap()     // s0: sampler
     };
-    commandList->SetDescriptorHeaps(2, heaps);  // 2 heaps!
+    commandList->SetDescriptorHeaps(2, heaps);  // 2 heaps
 
     // t0: texture
     D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(textureIndex);
     commandList->SetGraphicsRootDescriptorTable(1, texHandle);
 
-    // s0: sampler SEGÚN samplerMode
+    // s0: sampler samplerMode
     D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle((UINT)samplerMode);
     commandList->SetGraphicsRootDescriptorTable(2, sampHandle); 
 
@@ -390,7 +391,7 @@ bool Exercise4::createPSO()
     return SUCCEEDED(app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso)));
 }
 
-void Exercise4::ExerciseMenu()
+void Exercise4::ExerciseMenu(CameraModule* camera)
 {
     ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
@@ -437,16 +438,20 @@ void Exercise4::ExerciseMenu()
         ImGui::Combo("##Sampler", &samplerMode, samplerNames, IM_ARRAYSIZE(samplerNames));
     }
 
-    if (ImGui::CollapsingHeader("View", ImGuiTreeNodeFlags_DefaultOpen)) 
+    if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) 
     {
-        ImGui::Text("Distance"); ImGui::SameLine(85.0f);
-        ImGui::SliderFloat("##Dist", &camDistance, 1.0f, 100.0f, "%.1f");
+        ImGui::Text("Cam Speed"); ImGui::SameLine(85.0f);
+        ImGui::SliderFloat("##CamSpeed", &camSpeed, 1.0f, 100.0f, "%.1f");
+        camera->setSpeed(camSpeed);
 
-        ImGui::Text("Height"); ImGui::SameLine(85.0f);
+        SimpleMath::Vector3 camPos = camera->getPos();
+        ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camPos.x, camPos.y, camPos.z);
+
+        /*ImGui::Text("Height"); ImGui::SameLine(85.0f);
         ImGui::SliderFloat("##Height", &camHeight, -50.0f, 50.0f, "%.1f");
 
         ImGui::Text("Side"); ImGui::SameLine(85.0f);
-        ImGui::SliderFloat("##Side", &camSide, -20.0f, 20.0f, "%.1f");
+        ImGui::SliderFloat("##Side", &camSide, -20.0f, 20.0f, "%.1f");*/
     }
 
     if (ImGui::CollapsingHeader("Projection", ImGuiTreeNodeFlags_DefaultOpen)) 
@@ -505,7 +510,7 @@ void Exercise4::ExerciseMenu()
         // Sampler reset
         samplerMode = 0;
         // Camera resets  
-        camDistance = 5.0f;
+        camSpeed = 5.0f;
         camHeight = 3.0f;
         camSide = 0.0f;
         camFov = XM_PIDIV4;

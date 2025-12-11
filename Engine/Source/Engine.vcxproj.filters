@@ -94,7 +94,12 @@
     <ClCompile Include="ShaderDescriptorsModule.cpp">
       <Filter>Modules</Filter>
     </ClCompile>
-    <ClCompile Include="SamplersModule.cpp" />
+    <ClCompile Include="SamplersModule.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraModule.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -205,7 +210,12 @@
     <ClInclude Include="ShaderDescriptorsModule.h">
       <Filter>Modules</Filter>
     </ClInclude>
-    <ClInclude Include="SamplersModule.h" />
+    <ClInclude Include="SamplersModule.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraModule.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">

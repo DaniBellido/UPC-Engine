@@ -7,6 +7,7 @@
 #include "ShaderDescriptorsModule.h"
 #include "SamplersModule.h"
 #include "ExerciseModule.h"
+#include "CameraModule.h"
 
 
 
@@ -20,6 +21,7 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
     modules.push_back(resources = new ResourcesModule());
     modules.push_back(shaderDescriptors = new ShaderDescriptorsModule());
     modules.push_back(samplers = new SamplersModule());
+    modules.push_back(camera = new CameraModule());
 
 
     // Rendering exercises

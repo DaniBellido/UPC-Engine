@@ -1,6 +1,7 @@
 #pragma once
 #include "Module.h"
 #include "DebugDrawPass.h"
+class CameraModule;
 
 class Exercise4 : public Module
 {
@@ -26,7 +27,7 @@ private:
 	float scaleX{ 1.0f }, scaleY{ 1.0f }, scaleZ{1.0f};
 	float positionX, positionY, positionZ = 0.0f;
 
-	float camDistance = 5.0f;
+	float camSpeed = 5.0f;
 	float camHeight = 3.0f;
 	float camSide = 0.0f;
 
@@ -44,7 +45,7 @@ private:
 	bool createRootSignature();
 	bool createPSO();
 
-	void ExerciseMenu();
+	void ExerciseMenu(CameraModule* camera);
 
 	float DegreesToRadians(float degrees) { return degrees * 3.14159265359f / 180.0f; }
 

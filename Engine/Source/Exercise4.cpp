@@ -450,11 +450,6 @@ void Exercise4::ExerciseMenu(CameraModule* camera)
         SimpleMath::Quaternion camRot = camera->getRot();
         ImGui::Text("Camera Rotation: (%.2f, %.2f, %.2f, %.2f)", camRot.x, camRot.y, camRot.z, camRot.w);
 
-        /*ImGui::Text("Height"); ImGui::SameLine(85.0f);
-        ImGui::SliderFloat("##Height", &camHeight, -50.0f, 50.0f, "%.1f");
-
-        ImGui::Text("Side"); ImGui::SameLine(85.0f);
-        ImGui::SliderFloat("##Side", &camSide, -20.0f, 20.0f, "%.1f");*/
     }
 
     if (ImGui::CollapsingHeader("Projection", ImGuiTreeNodeFlags_DefaultOpen)) 

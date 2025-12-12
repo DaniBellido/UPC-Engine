@@ -154,6 +154,71 @@ void CameraModule::update()
     }
 
     // ------------------------------------------------------------------------
+    // CAMERA ORBIT AROUND (0,0,0) (Alt + Left Click)
+    // ------------------------------------------------------------------------
+    static bool orbiting = false;
+    static int  orbitLastX = 0;
+    static int  orbitLastY = 0;
+
+    // Orbit center of the 3D Space
+    Vector3 orbitCenter = Vector3::Zero;   
+
+    bool altDown = kb.IsKeyDown(Keyboard::Keys::LeftAlt) || kb.IsKeyDown(Keyboard::Keys::RightAlt);
+
+    if (altDown && ms.leftButton && !orbiting)
+    {
+        orbiting = true;
+        orbitLastX = ms.x;
+        orbitLastY = ms.y;
+
+        // Target looks at the center
+        target = orbitCenter;
+    }
+    else if ((!altDown || !ms.leftButton) && orbiting)
+    {
+        orbiting = false;
+    }
+
+    if (orbiting)
+    {
+        int dx = ms.x - orbitLastX;
+        int dy = ms.y - orbitLastY;
+        orbitLastX = ms.x;
+        orbitLastY = ms.y;
+
+        float orbitSpeed = 0.002f;
+        yaw += dx * orbitSpeed;
+        pitch -= dy * orbitSpeed;
+
+        // Vertical clamp
+        if (pitch > 1.5f)  pitch = 1.5f;
+        if (pitch < -1.5f) pitch = -1.5f;
+
+        // Radius to center
+        float radius = (position - orbitCenter).Length();
+        if (radius < 0.001f) radius = 0.001f;
+
+        Vector3 dir;
+        dir.x = sinf(yaw) * cosf(pitch);
+        dir.y = sinf(pitch);
+        dir.z = cosf(yaw) * cosf(pitch);
+        dir.z = -dir.z;
+        dir.Normalize();
+
+        // Camera in orbit looking at the center
+        position = orbitCenter - dir * radius;
+        forward = (orbitCenter - position);
+        forward.Normalize();
+        right = Vector3::UnitY.Cross(forward);
+        right.Normalize();
+        up = forward.Cross(right);
+        up.Normalize();
+
+        // if orbiting, target is always the center
+        target = orbitCenter;
+    }
+
+    // ------------------------------------------------------------------------
     // FINAL VIEW MATRIX
     // ------------------------------------------------------------------------
     // Update target and create final view matrix

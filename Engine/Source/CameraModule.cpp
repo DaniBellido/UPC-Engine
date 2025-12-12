@@ -70,6 +70,38 @@ void CameraModule::update()
         if (pitch < -1.5f) pitch = -1.5f;
     }
 
+    // ------------------------------------------------------------
+    // MOUSE WHEEL ZOOM
+    // ------------------------------------------------------------
+    if (ms.scrollWheelValue != 0)
+    {
+        // The scrollWheelValue is cumulative, so we save the delta.
+        static int lastWheel = 0;
+        int wheelDelta = ms.scrollWheelValue - lastWheel;
+        lastWheel = ms.scrollWheelValue;
+
+        float zoomSpeed = 5.0f;
+        float zoomAmount = wheelDelta * zoomSpeed * dt;
+
+        // New position
+        Vector3 newPos = position + forward * zoomAmount;
+
+        // Current distance to target
+        float dist = (position - target).Length();
+
+        // Distance threshold
+        const float minDist = 1.0f;
+        const float maxDist = 200.0f;
+
+        float newDist = (newPos - target).Length();
+
+        // Zoom in ONLY if it is within the limits
+        if (newDist > minDist && newDist < maxDist)
+        {
+            position = newPos;
+        }
+    }
+
     // ----------------------------------------------------------------------------
     // FORWARD VECTOR CALCULATION (Yaw/Pitch -> Direction)
     // ----------------------------------------------------------------------------
@@ -108,7 +140,7 @@ void CameraModule::update()
     if (kb.IsKeyDown(Keyboard::Keys::E)) position += up * speed * dt;
 
     // -------------------------------------------------------------------------
-    // RESET CAMERA (F KEY)
+    // RESET FOCUS (F KEY)
     // -------------------------------------------------------------------------
     // Reset to initial position and orientation
     if (kb.IsKeyDown(Keyboard::Keys::F)) 

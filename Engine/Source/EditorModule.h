@@ -24,6 +24,7 @@ private:
 
 
 	bool showExercisesWindow = true;
+	bool showPerformancePanel = true;
 
 
 
@@ -43,5 +44,6 @@ private:
 	void createDockSpace();
 	void drawToolbar();
 	void drawExerciseMenu();
+	void drawPerformancePanel();
 };
 

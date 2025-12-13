@@ -41,6 +41,11 @@ public:
     bool                        isPaused() const { return paused; }
     bool                        setPaused(bool p) { paused = p; return paused; }
 
+    float                       getUpdateMs() const { return updateMs; }
+    float                       getPreRenderMs() const { return preRenderMs; }
+    float                       getRenderMs() const { return renderMs; }
+    float                       getPostRenderMs() const { return postRenderMs; }
+
 private:
     enum { MAX_FPS_TICKS = 30 };
     typedef std::array<uint64_t, MAX_FPS_TICKS> TickList;
@@ -61,6 +66,13 @@ private:
     uint64_t  tickSum = 0;
     uint64_t  elapsedMilis = 0;
     bool      paused = false;
+
+
+    float updateMs = 0.0f;
+    float preRenderMs = 0.0f;
+    float renderMs = 0.0f;
+    float postRenderMs = 0.0f;
+
 };
 
 extern Application* app;

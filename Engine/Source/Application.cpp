@@ -66,6 +66,9 @@ bool Application::init()
 
 void Application::update()
 {
+    static Timer updateTimer, preRenderTimer, renderTimer, postRenderTimer;
+    static float updateMs = 0.0f, preRenderMs = 0.0f, renderMs = 0.0f, postRenderMs = 0.0f;
+
     using namespace std::chrono_literals;
 
     // Update milis
@@ -80,17 +83,35 @@ void Application::update()
 
     if (!app->paused)
     {
+        updateTimer.Start();
         for (auto it = modules.begin(); it != modules.end(); ++it)
             (*it)->update();
+        updateTimer.Stop();
+        updateMs = updateTimer.ReadMs();
 
+        preRenderTimer.Start();
         for (auto it = modules.begin(); it != modules.end(); ++it)
             (*it)->preRender();
+        preRenderTimer.Stop();
+        preRenderMs = preRenderTimer.ReadMs();
 
+        renderTimer.Start();
         for (auto it = modules.begin(); it != modules.end(); ++it)
             (*it)->render();
+        renderTimer.Stop();
+        renderMs = renderTimer.ReadMs();
 
+        postRenderTimer.Start();
         for (auto it = modules.begin(); it != modules.end(); ++it)
             (*it)->postRender();
+        postRenderTimer.Stop();
+        postRenderMs = postRenderTimer.ReadMs();
+
+        app->updateMs = updateMs;
+        app->preRenderMs = preRenderMs;
+        app->renderMs = renderMs;
+        app->postRenderMs = postRenderMs;
+
     }
 }
 

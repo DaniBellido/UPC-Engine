@@ -1,6 +1,7 @@
 ﻿#include "Globals.h"
 #include "EditorModule.h"
 #include "D3D12Module.h"
+#include "Application.h"
 
 
 enum class ExerciseSelection
@@ -60,6 +61,9 @@ void EditorModule::preRender()
 
 	if (showExercisesWindow)
 		drawExerciseMenu();
+
+	if (showPerformancePanel)
+		drawPerformancePanel();
 	
 }
 
@@ -202,6 +206,7 @@ void EditorModule::drawToolbar()
 			if (ImGui::MenuItem("Show Console", nullptr, showConsole)) { console->setVisible(!showConsole); }
 			if (ImGui::MenuItem("Show Viewport", nullptr, showViewport)) { viewport->setVisible(!showViewport); }
 			if (ImGui::MenuItem("Show Exercise List", nullptr, showExercisesWindow)) { showExercisesWindow = !showExercisesWindow; }
+			if (ImGui::MenuItem("Show Performance Panel", nullptr, showPerformancePanel)) { showPerformancePanel = !showPerformancePanel; }
 			ImGui::EndMenu();
 		}
 
@@ -271,6 +276,88 @@ void EditorModule::drawExerciseMenu()
 
 	// Add more:
 	// if (ImGui::Selectable("Exercise 3", currentExercise == ExerciseSelection::Exercise3)) { ... }
+
+	ImGui::End();
+}
+
+void EditorModule::drawPerformancePanel()
+{
+	if (!showPerformancePanel)
+		return;
+
+	ImGui::Begin("Performance Panel", &showPerformancePanel);
+
+	// --- FPS ---
+	float fps = app->getFPS();
+	float ms = (fps > 0.0f) ? 1000.0f / fps : 0.0f;
+
+	ImGui::TextColored(ImVec4(0.2f, 0.8f, 1.0f, 1.0f), "FPS: %.1f", fps);
+	ImGui::SameLine();
+	ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.2f, 1.0f), " (%.1f ms)", ms);
+
+	float fpsNorm = ImClamp(fps / 144.0f, 0.0f, 1.0f);
+	ImVec4 fpsColor = ImLerp(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), ImVec4(0.3f, 1.0f, 0.3f, 1.0f), fpsNorm);
+	ImGui::PushStyleColor(ImGuiCol_PlotHistogram, fpsColor);
+	ImGui::ProgressBar(fpsNorm, ImVec2(-1, 12), "GPU Load");
+	ImGui::PopStyleColor();
+
+	// FPS history
+	static float history[90] = {};
+	static int historyOffset = 0;
+	history[historyOffset] = fps;
+	historyOffset = (historyOffset + 1) % IM_ARRAYSIZE(history);
+	ImGui::PlotLines("##fps", history, IM_ARRAYSIZE(history), historyOffset, nullptr, 30.0f, 144.0f, ImVec2(0, 40));
+
+	// --- Time Breakdown ---
+	if (ImGui::CollapsingHeader("Time Breakdown", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		// Columns
+		ImGui::Columns(3, "PerfColumns", false);
+		ImGui::SetColumnWidth(0, 100); // Process
+		ImGui::SetColumnWidth(1, 70);  // Time in ms
+		ImGui::SetColumnWidth(2, 220); // Load
+
+		// Headers
+		ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Process"); ImGui::NextColumn();
+		ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "ms"); ImGui::NextColumn();
+		ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.8f, 1.0f), "Load"); ImGui::NextColumn();
+		ImGui::Separator();
+
+		// Data
+		const char* names[4] = { "Update", "PreRender", "Render", "PostRender" };
+		float values[4] = { app->getUpdateMs(), app->getPreRenderMs(), app->getRenderMs(), app->getPostRenderMs() };
+		ImVec4 colors[4] = {
+			ImVec4(1.0f,0.3f,0.3f,1.0f),
+			ImVec4(1.0f,1.0f,0.3f,1.0f),
+			ImVec4(0.3f,0.3f,1.0f,1.0f),
+			ImVec4(0.3f,1.0f,0.3f,1.0f)
+		};
+
+		float maxValue = 33.0f; // max timeto normalize bar
+		static float displayed[4] = { 0 }; // smooth
+
+		for (int i = 0; i < 4; i++)
+		{
+			// Process name
+			ImGui::Text("%s", names[i]); ImGui::NextColumn();
+
+			// Time in ms
+			ImGui::Text("%.3f", values[i]); ImGui::NextColumn();
+
+			// Smoothed bar
+			float norm = ImClamp(values[i] / maxValue, 0.0f, 1.0f);
+			displayed[i] = displayed[i] * 0.9f + norm * 0.1f;
+
+			ImGui::PushStyleColor(ImGuiCol_PlotHistogram, colors[i]);
+			ImGui::ProgressBar(displayed[i], ImVec2(-1, 12));
+			if (ImGui::IsItemHovered())
+				ImGui::SetTooltip("%.3f ms (%.0f%% load)", values[i], displayed[i] * 100.0f);
+			ImGui::PopStyleColor();
+			ImGui::NextColumn();
+		}
+
+		ImGui::Columns(1);
+	}
 
 	ImGui::End();
 }

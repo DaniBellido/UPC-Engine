@@ -158,15 +158,22 @@ ComPtr<ID3D12Resource> ResourcesModule::createTextureFromFile(const std::filesys
 	ok = ok || SUCCEEDED(LoadFromTGAFile(fileName, defaultSRGB ? TGA_FLAGS_DEFAULT_SRGB : TGA_FLAGS_NONE, nullptr, image));
 	ok = ok || SUCCEEDED(LoadFromWICFile(fileName, defaultSRGB ? DirectX::WIC_FLAGS_DEFAULT_SRGB : DirectX::WIC_FLAGS_NONE, nullptr, image));
 
-	if (ok)
+	if (!ok) 
 	{
-		return createTextureFromImage(image, path.string().c_str());
+		Logger::Warn("ResourceModule::createTextureFromFile() couldn't create the texture.");
+		return nullptr;
 	}
 
-	Logger::Warn("ResourceModule::createTextureFromFile() couldn't create the texture.");
+	ScratchImage mipChain;
+	HRESULT hr = GenerateMipMaps(image.GetImages(), image.GetImageCount(), image.GetMetadata(), TEX_FILTER_DEFAULT, 0, mipChain);
+	if (SUCCEEDED(hr)) 
+	{
+		return createTextureFromImage(mipChain, path.string().c_str());
+	}
 
-	return nullptr;
+	return createTextureFromImage(image, path.string().c_str());
 }
+
 
 ComPtr<ID3D12Resource> ResourcesModule::createTextureFromImage(const ScratchImage& image, const char* name)
 {

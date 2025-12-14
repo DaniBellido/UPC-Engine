@@ -40,6 +40,8 @@ public:
 	void render() override;
 	bool cleanUp() override;
 
+	ImGuiPass* getImGuiPass() { return imGuiPass; }
+
 private:
 	void createDockSpace();
 	void drawToolbar();

@@ -70,7 +70,7 @@ private:
     void handleResize();
 
 public:
-    ViewportModule(HWND hWnd, D3D12Module* d3d12);
+    ViewportModule(HWND hWnd, D3D12Module* d3d12, ImGuiPass* imGuiPass);
     ~ViewportModule() = default;
 
     bool init() override;

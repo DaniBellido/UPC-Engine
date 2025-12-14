@@ -34,7 +34,7 @@ bool EditorModule::init()
 	console = new ConsoleModule();
 	console->init();
 
-	viewport = new ViewportModule(hWnd, d3d12);
+	viewport = new ViewportModule(hWnd, d3d12, imGuiPass);
 	viewport->init();
 
 	exercise = new ExerciseModule(d3d12);

@@ -1,15 +1,20 @@
 #include "Globals.h"
 #include "ViewportModule.h"
-#include "ShaderDescriptorsModule.h"
+
 #include "D3D12Module.h"
 #include "Application.h"
+#include "ImGuiPass.h"
+
+#include "EditorModule.h"
+#include "ShaderDescriptorsModule.h"
 
 
 
-ViewportModule::ViewportModule(HWND hWnd, D3D12Module* d3d12)
+ViewportModule::ViewportModule(HWND hWnd, D3D12Module* d3d12, ImGuiPass* imGuiPass)
 {
     this->hWnd = hWnd;
     this->d3d12 = d3d12;
+    this->imGuiPass = imGuiPass;
 }
 
 bool ViewportModule::init()
@@ -41,7 +46,7 @@ bool ViewportModule::init()
 
     device->CreateDescriptorHeap(&dsvDesc, IID_PPV_ARGS(&dsvHeap));
 
-    // createResources(width, height); commented to avoid breaks when closing the app (DX Live Objects)
+    createResources(width, height); //commented to avoid breaks when closing the app (DX Live Objects)
 
     t.Stop();
     Logger::Log("ViewportModule initialized in: " + std::to_string(t.ReadMs()) + " ms.");
@@ -65,7 +70,7 @@ void ViewportModule::preRender()
         pendingResize = true;
     }
 
-    /*ImGui::Image((ImTextureID)srvGpuHandle.ptr, viewportSize);*/
+    ImGui::Image((ImTextureID)srvGpuHandle.ptr, viewportSize);
 
 
     ImGui::End();
@@ -77,6 +82,15 @@ void ViewportModule::render()
 
 bool ViewportModule::cleanUp()
 {
+    destroyResources();  
+
+    // RTV/DSV heaps
+    if (rtvHeap) rtvHeap.Reset();
+    if (dsvHeap) dsvHeap.Reset();
+
+    // NO liberes imGuiPass (es de EditorModule)
+    imGuiPass = nullptr;
+
 	return true;
 }
 
@@ -123,9 +137,8 @@ void ViewportModule::createResources(uint32_t w, uint32_t h)
     // --------------------------------------------------
     // SRV (for ImGui)
     // --------------------------------------------------
-    UINT srvIndex = srvAllocator->createSRV(colorTexture);
-    srvCpuHandle = srvAllocator->getCPUHandle(srvIndex);
-    srvGpuHandle = srvAllocator->getGPUHandle(srvIndex);
+    srvCpuHandle = imGuiPass->getCpuHandle();
+    srvGpuHandle = imGuiPass->getGpuHandle();
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.Format = colorDesc.Format;

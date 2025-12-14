@@ -11,4 +11,7 @@ public:
 
     void startFrame();
     void record(ID3D12GraphicsCommandList* commandList, D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE getCpuHandle() const { return heap ? heap->GetCPUDescriptorHandleForHeapStart() : D3D12_CPU_DESCRIPTOR_HANDLE{}; }
+    D3D12_GPU_DESCRIPTOR_HANDLE getGpuHandle() const { return heap ? heap->GetGPUDescriptorHandleForHeapStart() : D3D12_GPU_DESCRIPTOR_HANDLE{}; }
 };

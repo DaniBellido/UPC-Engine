@@ -182,6 +182,7 @@ void EditorModule::createDockSpace()
 }
 
 static bool showAboutWindow = false;
+static bool showCameraControlsWindow = true;
 
 void EditorModule::drawToolbar()
 {
@@ -214,6 +215,7 @@ void EditorModule::drawToolbar()
 		if (ImGui::BeginMenu("Help"))
 		{
 			if (ImGui::MenuItem("About")) showAboutWindow = true;
+			if (ImGui::MenuItem("Camera Controls")) showCameraControlsWindow = true;
 			ImGui::EndMenu();
 		}
 
@@ -236,6 +238,28 @@ void EditorModule::drawToolbar()
 		);
 		ImGui::Spacing();
 		if (ImGui::Button("OK")) showAboutWindow = false;
+		ImGui::End();
+	}
+
+	// --- Camera Controls window ---
+	if (showCameraControlsWindow)
+	{
+		ImGui::Begin("Camera Controls", &showCameraControlsWindow, ImGuiWindowFlags_AlwaysAutoResize);
+
+		ImGui::Text("Mouse Controls:");
+		ImGui::BulletText("Right Mouse Button + Move: Rotate camera");
+		ImGui::BulletText("Mouse Wheel: Zoom in/out");
+		ImGui::BulletText("Alt + Left Mouse Button + Move: Orbit around origin");
+
+		ImGui::Separator();
+
+		ImGui::Text("Keyboard Controls:");
+		ImGui::BulletText("W / S: Move forward/backward");
+		ImGui::BulletText("A / D: Move left/right");
+		ImGui::BulletText("Q / E: Move down/up");
+		ImGui::BulletText("Left Shift: Hold to double movement speed");
+		ImGui::BulletText("F: Reset camera focus to origin");
+
 		ImGui::End();
 	}
 }

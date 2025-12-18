@@ -19,7 +19,7 @@ private:
     // --------------------------------------------------
     // State
     // --------------------------------------------------
-    bool visible = true;
+    bool visible = false;
     bool focused = false;
     bool hovered = false;
 

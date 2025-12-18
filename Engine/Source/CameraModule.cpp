@@ -1,12 +1,33 @@
 #include "Globals.h"
 #include "CameraModule.h"
+
 #include "Application.h"
+#include "D3D12Module.h"
 
 #include "Mouse.h"
 #include "Keyboard.h"
 #include "GamePad.h"
 
-CameraModule::CameraModule() 
+void CameraModule::FocusAt(const Vector3& point)
+{
+    target = point;
+
+    // Dirección correcta hacia el objeto
+    forward = target - position;
+    forward.Normalize();
+
+    // Reconstruir yaw / pitch desde forward
+    yaw = atan2f(forward.x, -forward.z);
+    pitch = asinf(forward.y);
+
+    // Orthonormal basis
+    right = Vector3::UnitY.Cross(forward);
+    right.Normalize();
+    up = forward.Cross(right);
+    up.Normalize();
+}
+
+CameraModule::CameraModule()
 {
     // -------------------------------------------------------------------------------
     // INITIAL CAMERA SETUP
@@ -32,6 +53,11 @@ bool CameraModule::init()
     // -------------------------------------------------------------------------------
     forward = Vector3(0, 0, -1);                        // Look direction: towards origin (-Z)
     up = Vector3::UnitY;                                // World up vector
+
+    FocusAt(Vector3::Zero);
+
+    D3D12Module* d3d12 = app->getD3D12();
+    aspect = float(d3d12->getWindowWidth()) / float(d3d12->getWindowHeight());
 
     // Create initial view matrix using LookAt
     view = SimpleMath::Matrix::CreateLookAt(SimpleMath::Vector3(position), SimpleMath::Vector3(target), SimpleMath::Vector3::Up);
@@ -127,11 +153,20 @@ void CameraModule::update()
     Matrix rotMatrix = Matrix::CreateLookAt(Vector3::Zero, forward, up);
     rotation = Quaternion::CreateFromRotationMatrix(rotMatrix);
 
+
+    // -------------------------------------------------------------------------
+    // SET SPEED (SHIFT)
+    // -------------------------------------------------------------------------
+    Keyboard::State kb = Keyboard::Get().GetState();
+    if (kb.IsKeyDown(Keyboard::Keys::LeftShift))
+        speed = 10.0f;
+    else
+        speed = 5.0f;
+
     // --------------------------------------------------------------------------
     // KEYBOARD MOVEMENT (WASDQE)
     // --------------------------------------------------------------------------
     // Move camera in local space using forward/right/up vectors
-    Keyboard::State kb = Keyboard::Get().GetState();
     if (kb.IsKeyDown(Keyboard::Keys::W)) position += forward * speed * dt;
     if (kb.IsKeyDown(Keyboard::Keys::S)) position -= forward * speed * dt;
     if (kb.IsKeyDown(Keyboard::Keys::A)) position += right * speed * dt;
@@ -146,11 +181,7 @@ void CameraModule::update()
     if (kb.IsKeyDown(Keyboard::Keys::F)) 
     {
         position = Vector3(0, 3, 10);
-        yaw = 0; pitch = 0;
-        forward = Vector3(0, 0, -1);
-        right = Vector3(1, 0, 0);
-        up = Vector3(0, 1, 0);
-        rotation = Quaternion::Identity;
+        FocusAt(Vector3::Zero);
     }
 
     // ------------------------------------------------------------------------
@@ -224,5 +255,7 @@ void CameraModule::update()
     // Update target and create final view matrix
     target = position + forward;
     view = Matrix::CreateLookAt(position, target, up);
+
+   
 }
 

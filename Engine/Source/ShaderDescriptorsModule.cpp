@@ -34,6 +34,13 @@ UINT ShaderDescriptorsModule::allocate()
 
 UINT ShaderDescriptorsModule::createSRV(ID3D12Resource* resource)
 {
+
+    if (!resource)
+    {
+        OutputDebugStringA("Error: createSRV called with nullptr resource!\n");
+        return UINT_MAX; 
+    }
+
     UINT index = allocate();
 
     D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = getCPUHandle(index);

@@ -135,10 +135,11 @@ void Exercise4::render()
     SimpleMath::Matrix position = SimpleMath::Matrix::CreateTranslation(positionX, positionY, positionZ);
 
     SimpleMath::Matrix model = scale * rotX * rotY * rotZ * position;
-    SimpleMath::Matrix view = camera->getView();
 
-    float aspect = float(d3d12->getWindowWidth()) / float(d3d12->getWindowHeight());
-    SimpleMath::Matrix proj = SimpleMath::Matrix::CreatePerspectiveFieldOfView(camFov, aspect, camNear, camFar);
+
+    SimpleMath::Matrix view = camera->getView();
+    float aspect = camera->getAspect();
+    SimpleMath::Matrix proj = camera->GetProjection(aspect);
 
     mvpMatrix = (model * view * proj).Transpose();
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
@@ -438,31 +439,46 @@ void Exercise4::ExerciseMenu(CameraModule* camera)
         ImGui::Combo("##Sampler", &samplerMode, samplerNames, IM_ARRAYSIZE(samplerNames));
     }
 
-    if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) 
+    if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Text("Cam Speed"); ImGui::SameLine(85.0f);
-        ImGui::SliderFloat("##CamSpeed", &camSpeed, 1.0f, 100.0f, "%.1f");
-        camera->setSpeed(camSpeed);
+        // Camera info
+        ImGui::Text("Speed");
+        ImGui::SameLine(120.0f);
+        ImGui::Text("%.2f", camera->getSpeed());
 
         SimpleMath::Vector3 camPos = camera->getPos();
-        ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camPos.x, camPos.y, camPos.z);
+        ImGui::Text("Position");
+        ImGui::SameLine(120.0f);
+        ImGui::Text("(%.2f, %.2f, %.2f)", camPos.x, camPos.y, camPos.z);
 
         SimpleMath::Quaternion camRot = camera->getRot();
-        ImGui::Text("Camera Rotation: (%.2f, %.2f, %.2f, %.2f)", camRot.x, camRot.y, camRot.z, camRot.w);
+        ImGui::Text("Rotation");
+        ImGui::SameLine(120.0f);
+        ImGui::Text("(%.2f, %.2f, %.2f, %.2f)", camRot.x, camRot.y, camRot.z, camRot.w);
 
+        ImGui::Separator();
+
+        // Camera Projection
+        if (ImGui::CollapsingHeader("Projection", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::PushItemWidth(180.0f);
+
+            camFov = camera->GetFov();
+            if (ImGui::SliderFloat("FOV", &camFov, 0.1f, 3.0f, "%.2f"))
+                camera->SetFov(camFov);
+
+            camNear = camera->GetNearPlane();
+            if (ImGui::SliderFloat("Near", &camNear, 0.01f, 5.0f, "%.3f"))
+                camera->SetNearPlane(camNear);
+
+            camFar = camera->GetFarPlane();
+            if (ImGui::SliderFloat("Far", &camFar, 10.0f, 500.0f, "%.0f"))
+                camera->SetFarPlane(camFar);
+
+            ImGui::PopItemWidth();
+        }
     }
 
-    if (ImGui::CollapsingHeader("Projection", ImGuiTreeNodeFlags_DefaultOpen)) 
-    {
-        ImGui::Text("FOV"); ImGui::SameLine(85.0f);
-        ImGui::SliderFloat("##Fov", &camFov, 0.1f, 3.0f, "%.2f");
-
-        ImGui::Text("Near"); ImGui::SameLine(85.0f);
-        ImGui::SliderFloat("##Near", &camNear, 0.01f, 5.0f, "%.3f");
-
-        ImGui::Text("Far"); ImGui::SameLine(85.0f);
-        ImGui::SliderFloat("##Far", &camFar, 10.0f, 500.0f, "%.0f");
-    }
     if (ImGui::CollapsingHeader("Dsiplay", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::Checkbox("Show grid", &isGridVisible);
@@ -485,14 +501,15 @@ void Exercise4::ExerciseMenu(CameraModule* camera)
         camSpeed = 5.0f;
         camHeight = 3.0f;
         camSide = 0.0f;
-        camFov = XM_PIDIV4;
-        camNear = 0.1f;
-        camFar = 100.0f;
+        camFov = camera->SetFov(XM_PIDIV4);
+        camNear = camera->SetNearPlane(0.1f);
+        camFar = camera->SetFarPlane(100.0);
         //Display
         isGridVisible = true;
         isAxisVisible = true;
         isGeoVisible = true;
     }
+
 
     ImGui::End();
 }

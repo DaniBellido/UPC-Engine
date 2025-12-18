@@ -15,6 +15,12 @@ class CameraModule : public Module
 	float pitch = 0.0f;
 	float mouseSensitivity = 0.002f;
 
+	float aspect;
+
+	float fov = XM_PIDIV4;
+	float nearPlane = 0.1f;
+	float farPlane = 100.0f;
+
 public:
 	CameraModule();
 	~CameraModule();
@@ -22,22 +28,20 @@ public:
 	bool init() override;
 	void update() override;
 
-
-
+	void FocusAt(const Vector3& point);
 	float setSpeed(float _speed) { return speed = _speed; }
+	float SetFov(float newFov) { return fov = newFov; }
+	float SetNearPlane(float nearP) { return nearPlane = nearP; }
+	float SetFarPlane(float farP) { return farPlane = farP; }
 
 	const Matrix& getView() const { return view; }
+	SimpleMath::Matrix GetProjection(float aspect) const { return SimpleMath::Matrix::CreatePerspectiveFieldOfView(fov, aspect, nearPlane, farPlane); }
 	const Quaternion& getRot() const { return rotation; }
 	const Vector3& getPos() const { return position; }
 	const float& getSpeed() const { return speed; }
-
-
-	/*Add methods to manipulate it :
-	SetFOV() … should set the horizontal FOV keeping the aspect ratio
-		SetAspectRatio() … should change the vertical FOV to meet the new aspect ratio.
-		SetPlaneDistances() / Position() / Orientation() / LookAt(x, y, z)
-		GetProjectionMatrix()
-		GetViewMatrix()…*/
-
+	const float getAspect() const { return aspect; }
+	float GetFov() const { return fov; }
+	float GetNearPlane() const { return nearPlane; }
+	float GetFarPlane() const { return farPlane; }
 };
 

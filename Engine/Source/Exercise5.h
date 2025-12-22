@@ -4,7 +4,7 @@
 
 class CameraModule;
 
-class Exercise4 : public Module
+class Exercise5 : public Module
 {
 private:
 
@@ -21,11 +21,11 @@ private:
 	UINT textureIndex = UINT_MAX;
 
 	uint32_t samplerIndices[4] = { 0,1,2,3 };
-	int samplerMode = 0; 
+	int samplerMode = 0;
 
 
 	float rotationX, rotationY, rotationZ = 0.0f;
-	float scaleX{ 1.0f }, scaleY{ 1.0f }, scaleZ{1.0f};
+	float scaleX{ 1.0f }, scaleY{ 1.0f }, scaleZ{ 1.0f };
 	float positionX, positionY, positionZ = 0.0f;
 
 	float camSpeed = 5.0f;
@@ -50,7 +50,7 @@ private:
 
 	float DegreesToRadians(float degrees) { return degrees * 3.14159265359f / 180.0f; }
 
-		
+
 public:
 
 	bool init() override;

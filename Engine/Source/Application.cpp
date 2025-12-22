@@ -1,7 +1,10 @@
 #include "Globals.h"
 #include "Application.h"
+#include "DebugDrawPass.h"
+
 #include "ModuleInput.h"
 #include "D3D12Module.h"
+
 #include "EditorModule.h"
 #include "ResourcesModule.h"
 #include "ShaderDescriptorsModule.h"

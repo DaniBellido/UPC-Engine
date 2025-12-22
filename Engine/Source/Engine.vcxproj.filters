@@ -100,6 +100,16 @@
     <ClCompile Include="CameraModule.cpp">
       <Filter>Modules</Filter>
     </ClCompile>
+    <ClCompile Include="Exercise5.cpp">
+      <Filter>Exercises</Filter>
+    </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="BasicMaterial.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -216,6 +226,19 @@
     <ClInclude Include="CameraModule.h">
       <Filter>Modules</Filter>
     </ClInclude>
+    <ClInclude Include="Exercise5.h">
+      <Filter>Exercises</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="my_gltf.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="BasicMaterial.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">

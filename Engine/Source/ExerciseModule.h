@@ -1,10 +1,12 @@
 #pragma once
 #include "Module.h"
 #include "D3D12Module.h"
-#include "Exercise1.h"
-#include "Exercise2.h"
-#include "Exercise3.h"
-#include "Exercise4.h"
+
+class Exercise1;
+class Exercise2;
+class Exercise3;
+class Exercise4;
+class Exercise5;
 
 class ExerciseModule : public Module
 {
@@ -15,6 +17,7 @@ private:
 	Exercise2* exe2 = nullptr;
 	Exercise3* exe3 = nullptr;
 	Exercise4* exe4 = nullptr;
+	Exercise5* exe5 = nullptr;
 
 public:
 	ExerciseModule(D3D12Module* d3d12);
@@ -28,6 +31,7 @@ public:
 	void exercise2();
 	void exercise3();
 	void exercise4();
+	void exercise5();
 
 };
 

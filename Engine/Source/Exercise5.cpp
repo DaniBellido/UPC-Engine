@@ -19,7 +19,10 @@
 
 bool Exercise5::init()
 {
-    duck.Load("Assets/Models/Duck.gltf");
+    if (!duck.Load("Duck.gltf")) 
+    {
+        Logger::Err("Duck Model not loaded");
+    }
 
     if (!createRootSignature())
     {
@@ -243,7 +246,7 @@ bool Exercise5::createPSO()
     }
     else
     {
-        Logger::Log("Exercise4: VS Data & PS Data: OK");
+        Logger::Warn("Exercise5: VS Data & PS Data: Needs to be updated");
     }
 
     // ------------------------------------------------------------

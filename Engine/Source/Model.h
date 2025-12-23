@@ -11,7 +11,7 @@ private:
 
 
 public:
-	void Load(const char* assetFileName);
+	bool Load(const char* assetFileName);
 
 	std::vector<Mesh> meshes;
 	std::vector<BasicMaterial> materials;

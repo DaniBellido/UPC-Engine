@@ -41,9 +41,6 @@ private:
 	bool isAxisVisible = true;
 	bool isGeoVisible = true;
 
-
-	bool createVertexBuffer();
-	bool createIndexBuffer();
 	bool createRootSignature();
 	bool createPSO();
 

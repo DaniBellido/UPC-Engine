@@ -13,19 +13,13 @@
 #include <d3dcompiler.h>
 #include "d3dx12.h"
 
+#include "Model.h"
+#include "Mesh.h"
+#include "BasicMaterial.h"
+
 bool Exercise5::init()
 {
-    if (!createVertexBuffer())
-    {
-        Logger::Err("Exercise 5: VertexBuffer Failed");
-        return false;
-    }
-
-    if (!createIndexBuffer())
-    {
-        Logger::Err("Exercise 5: IndexBuffer Failed");
-        return false;
-    }
+    duck.Load("Assets/Models/Duck.gltf");
 
     if (!createRootSignature())
     {
@@ -38,43 +32,6 @@ bool Exercise5::init()
         Logger::Err("Exercise 5: PSO Failed");
         return false;
     }
-
-    texture = app->getResources()->createTextureFromFile(L"Assets/Textures/dog.dds");
-    ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
-    textureIndex = shaders->createSRV(texture.Get());
-
-    if (texture)
-    {
-        Logger::Log("TEXTURE OK!");
-    }
-
-    SamplersModule* samplers = app->getSamplers();
-
-    D3D12_SAMPLER_DESC samp = {};
-    samp.MinLOD = 0.0f;
-    samp.MaxLOD = D3D12_FLOAT32_MAX;
-    samp.MipLODBias = 0.0f;
-    samp.MaxAnisotropy = 1;
-    samp.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-    samp.BorderColor[0] = samp.BorderColor[1] = samp.BorderColor[2] = samp.BorderColor[3] = 0.0f;
-
-    // i) Wrap + Bilinear (slot 0)
-    samp.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-    samp.AddressU = samp.AddressV = samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    samplerIndices[0] = samplers->createSampler(samp);
-
-    // ii) Clamp + Bilinear (slot 1)
-    samp.AddressU = samp.AddressV = samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    samplerIndices[1] = samplers->createSampler(samp);
-
-    // iii) Wrap + Point (slot 2)
-    samp.AddressU = samp.AddressV = samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-    samp.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-    samplerIndices[2] = samplers->createSampler(samp);
-
-    // iv) Clamp + Point (slot 3)
-    samp.AddressU = samp.AddressV = samp.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-    samplerIndices[3] = samplers->createSampler(samp);
 
     return true;
 }
@@ -120,9 +77,7 @@ void Exercise5::render()
     // Configure the Input Assembler
     // ------------------------------------------------------------
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set primitive type (triangles)
-    commandList->IASetVertexBuffers(0, 1, &vertexBufferView);                 // Assign the vertex buffer containing the triangle’s vertices
 
-    commandList->IASetIndexBuffer(&indexBufferView);
 
     // ----------------------------------------------------------------
     // Model-View-Projection Matrix Pipeline
@@ -143,6 +98,7 @@ void Exercise5::render()
 
     mvpMatrix = (model * view * proj).Transpose();
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
+    duck.modelMatrix = model;
 
     // ------------------------------------------------------------
     // BIND TEXTURES
@@ -156,14 +112,6 @@ void Exercise5::render()
     };
     commandList->SetDescriptorHeaps(2, heaps);  // 2 heaps
 
-    // t0: texture
-    D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(textureIndex);
-    commandList->SetGraphicsRootDescriptorTable(1, texHandle);
-
-    // s0: sampler samplerMode
-    D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle((UINT)samplerMode);
-    commandList->SetGraphicsRootDescriptorTable(2, sampHandle);
-
 
     // ------------------------------------------------------------
     // GRID & AXIS
@@ -172,135 +120,66 @@ void Exercise5::render()
     if (isAxisVisible) { dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f); }
 
     // ------------------------------------------------------------
-    // Draw the geometry
+    // Draw Duck meshes
     // ------------------------------------------------------------
-    if (isGeoVisible) { commandList->DrawIndexedInstanced(36, 1, 0, 0, 0); }
+    if (isGeoVisible)
+    {
+        for (size_t i = 0; i < duck.meshes.size(); i++)
+        {
+            const auto& mesh = duck.meshes[i];
+
+            // Vertex buffer
+            commandList->IASetVertexBuffers(0, 1, &mesh.vertexView);
+
+            // Material CBV slot 1 - FAKE por ahora
+            commandList->SetGraphicsRootConstantBufferView(1, 0);  // Fake GPU address
+
+            // Texture SRV slot 2 - Fake
+            D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(0);
+            commandList->SetGraphicsRootDescriptorTable(2, texHandle);
+
+            // Sampler slot 3
+            D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle((UINT)samplerMode);
+            commandList->SetGraphicsRootDescriptorTable(3, sampHandle);
+
+            // Draw
+            if (mesh.numIndices > 0)
+                commandList->DrawIndexedInstanced(mesh.numIndices, 1, 0, 0, 0);
+            else
+                commandList->DrawInstanced(mesh.numVertices, 1, 0, 0);
+        }
+    }
 
     app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
 }
 
-bool Exercise5::createVertexBuffer()
-{
-    struct Vertex
-    {
-        Vector3 position;
-        Vector2 uv;
-        Vector4 color;
-    };
-
-    static Vertex vertices[24] =
-    {
-        // Front face (Blue)     
-     { Vector3(-1.0f, -1.0f,  1.0f), Vector2(-0.5f, 2.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-     { Vector3(-1.0f,  1.0f,  1.0f), Vector2(-0.5f, -0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-     { Vector3(1.0f,  1.0f,  1.0f), Vector2(2.5f, -0.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-     { Vector3(1.0f, -1.0f,  1.0f), Vector2(2.5f, 2.5f), Vector4(0.0f, 0.0f, 1.0f, 1.0f) },
-
-     // Back face (Red)
-     { Vector3(1.0f, -1.0f, -1.0f), Vector2(0.0f, 1.0f), Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
-     { Vector3(1.0f,  1.0f, -1.0f), Vector2(0.0f, 0.0f), Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
-     { Vector3(-1.0f,  1.0f, -1.0f), Vector2(1.0f, 0.0f), Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
-     { Vector3(-1.0f, -1.0f, -1.0f), Vector2(1.0f, 1.0f), Vector4(1.0f, 0.0f, 0.0f, 1.0f) },
-
-     // Left face (Green)
-     { Vector3(-1.0f, -1.0f, -1.0f), Vector2(0.0f, 1.0f), Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
-     { Vector3(-1.0f,  1.0f, -1.0f), Vector2(0.0f, 0.0f), Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
-     { Vector3(-1.0f,  1.0f,  1.0f), Vector2(1.0f, 0.0f), Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
-     { Vector3(-1.0f, -1.0f,  1.0f), Vector2(1.0f, 1.0f), Vector4(0.0f, 1.0f, 0.0f, 1.0f) },
-
-     // Right face (Yellow)
-     { Vector3(1.0f, -1.0f,  1.0f), Vector2(0.0f, 1.0f), Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
-     { Vector3(1.0f,  1.0f,  1.0f), Vector2(0.0f, 0.0f), Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
-     { Vector3(1.0f,  1.0f, -1.0f), Vector2(1.0f, 0.0f), Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
-     { Vector3(1.0f, -1.0f, -1.0f), Vector2(1.0f, 1.0f), Vector4(1.0f, 1.0f, 0.0f, 1.0f) },
-
-     // Top face (Magenta)
-     { Vector3(-1.0f,  1.0f,  1.0f), Vector2(0.0f, 1.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
-     { Vector3(-1.0f,  1.0f, -1.0f), Vector2(0.0f, 0.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
-     { Vector3(1.0f,  1.0f, -1.0f), Vector2(1.0f, 0.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
-     { Vector3(1.0f,  1.0f,  1.0f), Vector2(1.0f, 1.0f), Vector4(1.0f, 0.0f, 1.0f, 1.0f) },
-
-     // Bottom face (Cyan)
-     { Vector3(-1.0f, -1.0f, -1.0f), Vector2(0.0f, 1.0f), Vector4(0.0f, 1.0f, 1.0f, 1.0f) },
-     { Vector3(-1.0f, -1.0f,  1.0f), Vector2(0.0f, 0.0f), Vector4(0.0f, 1.0f, 1.0f, 1.0f) },
-     { Vector3(1.0f, -1.0f,  1.0f), Vector2(1.0f, 0.0f), Vector4(0.0f, 1.0f, 1.0f, 1.0f) },
-     { Vector3(1.0f, -1.0f, -1.0f), Vector2(1.0f, 1.0f), Vector4(0.0f, 1.0f, 1.0f, 1.0f) }
-    };
-
-    vertexBuffer = app->getResources()->createDefaultBuffer(vertices, sizeof(vertices), "Exercise4");
-
-    vertexBufferView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
-    vertexBufferView.StrideInBytes = sizeof(Vertex);
-    vertexBufferView.SizeInBytes = sizeof(vertices);
-
-    return true;
-}
-
-bool Exercise5::createIndexBuffer()
-{
-    // 36 índices = 6 caras * 2 triángulos * 3 vértices
-    static uint16_t indices[36] =
-    {
-        // Front face (0,1,2,3)
-        0, 1, 2,
-        0, 2, 3,
-
-        // Back face (4,5,6,7)
-        4, 5, 6,
-        4, 6, 7,
-
-        // Left face (8,9,10,11)
-        8,  9, 10,
-        8, 10, 11,
-
-        // Right face (12,13,14,15)
-        12, 13, 14,
-        12, 14, 15,
-
-        // Top face (16,17,18,19)
-        16, 17, 18,
-        16, 18, 19,
-
-        // Bottom face (20,21,22,23)
-        20, 21, 22,
-        20, 22, 23
-    };
-
-    indexBuffer = app->getResources()->createDefaultBuffer(indices, sizeof(indices), "Exercise4_Indices");
-
-    indexBufferView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
-    indexBufferView.SizeInBytes = sizeof(indices);
-    indexBufferView.Format = DXGI_FORMAT_R16_UINT;
-
-    return true;
-}
-
 bool Exercise5::createRootSignature()
 {
-    // b0: 16 constants (float4x4 matrix for Vertex Shader)
-    // t0: texture SRV descriptor table (Pixel Shader)
-    // s0: sampler descriptor table (Pixel Shader)
-
-    CD3DX12_ROOT_PARAMETER rootParameters[3];
+    CD3DX12_ROOT_PARAMETER rootParameters[4];
     CD3DX12_DESCRIPTOR_RANGE srvRange;
     CD3DX12_DESCRIPTOR_RANGE sampRange;
 
     // ------------------------------------------------------------  
-    // Root constants slot b0: 16x32-bit floats = float4x4 MVP matrix
+    // [0] MVP constants
     // ------------------------------------------------------------
     rootParameters[0].InitAsConstants(16, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 
     // ------------------------------------------------------------
-   // SRV descriptor table slot t0: 1 texture SRV 
-   // ------------------------------------------------------------
-    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0); // 1 SRV, t0
-    rootParameters[1].InitAsDescriptorTable(1, &srvRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    // [1] Materials CBV  (PS)
+    // ------------------------------------------------------------
+    rootParameters[1].InitAsConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
 
     // ------------------------------------------------------------
-    // Sampler descriptor table slot s0: 1 sampler
+    // [2] SRV texture table (PS)
     // ------------------------------------------------------------
-    sampRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0); // 1 sampler, s0
-    rootParameters[2].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+    rootParameters[2].InitAsDescriptorTable(1, &srvRange, D3D12_SHADER_VISIBILITY_PIXEL);
+
+    // ------------------------------------------------------------
+    // [3] Sampler Table (PS)
+    // ------------------------------------------------------------
+    sampRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+    rootParameters[3].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
     // ------------------------------------------------------------
     // Create and serialize root signature
@@ -381,6 +260,7 @@ bool Exercise5::createPSO()
     psoDesc.SampleDesc = { 1, 0 };                                                                  // must be the same sample description as the swapchain and depth/stencil buffer
     psoDesc.SampleMask = 0xffffffff;                                                                // sample mask has to do with multi-sampling. 0xffffffff means point sampling is done
     psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);                               // a default rasterizer state.
+    psoDesc.RasterizerState.FrontCounterClockwise = TRUE;                                           // glTF winding order
     psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);                                         // a default blend state.
     psoDesc.NumRenderTargets = 1;                                                                   // we are only binding one render target
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);

@@ -17,7 +17,7 @@ public:
     ID3D12Resource* materialBuffer = nullptr;
 
     // SRV 
-    UINT colourTexSRV = UINT_MAX;
+    ID3D12Resource* colourTexSRV = nullptr;
 
     // Material data
     Vector4 baseColour = { 1,1,1,1 };

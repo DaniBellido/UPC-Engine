@@ -109,7 +109,9 @@
     <ClCompile Include="Mesh.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="BasicMaterial.cpp" />
+    <ClCompile Include="BasicMaterial.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -238,7 +240,9 @@
     <ClInclude Include="Mesh.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="BasicMaterial.h" />
+    <ClInclude Include="BasicMaterial.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">

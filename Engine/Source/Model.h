@@ -1,7 +1,7 @@
 #pragma once
 
-class Mesh;
-class BasicMaterial;
+#include "Mesh.h"
+#include "BasicMaterial.h"
 
 namespace tinygltf { class Model;  class Node; }
 

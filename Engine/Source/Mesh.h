@@ -1,5 +1,4 @@
 #pragma once
-#include <map>
 
 namespace tinygltf { class Model;  struct Mesh; struct Primitive; }
 
@@ -33,11 +32,5 @@ public:
 
     void load(const tinygltf::Model& model, const tinygltf::Mesh& gltfMesh, const tinygltf::Primitive& primitive);
 
-private:
-    bool loadAccessorData(uint8_t* data, size_t elemSize, size_t stride, size_t elemCount, const tinygltf::Model& model, int
-        accesorIndex);
-
-    bool loadAccessorData(uint8_t* data, size_t elemSize, size_t stride, size_t elemCount, const tinygltf::Model& model,
-        const std::map<std::string, int>& attributes, const char* accesorName);
 };
 

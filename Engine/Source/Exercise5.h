@@ -1,6 +1,7 @@
 #pragma once
 #include "Module.h"
 #include "DebugDrawPass.h"
+#include "Model.h"
 
 class CameraModule;
 
@@ -23,7 +24,7 @@ private:
 	uint32_t samplerIndices[4] = { 0,1,2,3 };
 	int samplerMode = 0;
 
-
+	Model duck;
 	float rotationX, rotationY, rotationZ = 0.0f;
 	float scaleX{ 1.0f }, scaleY{ 1.0f }, scaleZ{ 1.0f };
 	float positionX, positionY, positionZ = 0.0f;

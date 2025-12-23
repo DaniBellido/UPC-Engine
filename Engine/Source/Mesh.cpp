@@ -31,7 +31,7 @@ void Mesh::load(const tinygltf::Model& model, const tinygltf::Mesh& gltfMesh, co
 		loadAccessorData(vertexData + offsetof(Vertex, texCoord0), sizeof(Vector2), sizeof(Vertex), numVertices, model, primitive.attributes, "TEXCOORD_0");
 
 		// Upload vertex data to GPU using the engine's default buffer creation (DEFAULT heap + staging)
-		vertexBuffer = app->getResources()->createDefaultBuffer(vertices, numVertices * sizeof(Vertex), "VertexBuffer").Get();
+		vertexBuffer = app->getResources()->createDefaultBuffer(vertices, numVertices * sizeof(Vertex), "VertexBuffer");
 
 		// Fill the D3D12_VERTEX_BUFFER_VIEW structure for IASetVertexBuffers
 		vertexView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
@@ -40,6 +40,41 @@ void Mesh::load(const tinygltf::Model& model, const tinygltf::Mesh& gltfMesh, co
 
 		// Store material index for later binding (texture/CBV)
 		materialIndex = primitive.material;
+
+		if (primitive.indices >= 0) {
+			const tinygltf::Accessor& indAcc = model.accessors[primitive.indices];
+
+			if (indAcc.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT ||
+				indAcc.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT ||
+				indAcc.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+
+				uint32_t indexElementSize = tinygltf::GetComponentSizeInBytes(indAcc.componentType);
+				numIndices = uint32_t(indAcc.count);
+
+				// CHECKS DE SEGURIDAD
+				if (numIndices > 0 && indexElementSize > 0 && indexElementSize <= 4)
+				{
+					uint8_t* indices = new uint8_t[numIndices * indexElementSize];
+
+					// Verificar que loadAccessorData funciona
+					if (loadAccessorData(indices, indexElementSize, indexElementSize, numIndices, model, primitive.indices)) {
+						size_t totalSize = numIndices * indexElementSize;
+
+						auto result = app->getResources()->createDefaultBuffer(indices, totalSize, "IndexBuffer");
+						indexBuffer = result;
+
+						if (indexBuffer != nullptr) {
+							indexView.BufferLocation = indexBuffer->GetGPUVirtualAddress();
+							static const DXGI_FORMAT formats[3] = { DXGI_FORMAT_R8_UINT, DXGI_FORMAT_R16_UINT, DXGI_FORMAT_R32_UINT };
+							indexView.Format = formats[(indexElementSize >> 1)];
+							indexView.SizeInBytes = UINT(totalSize);
+						}
+					}
+					delete[] indices;
+				}
+			}
+		}
+        
 
 		// Free temporary CPU memory after successful GPU upload
 		delete[] vertices;

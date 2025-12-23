@@ -23,6 +23,7 @@ public:
 
     UINT allocate();
     UINT createSRV(ID3D12Resource* resource);
+    UINT createNullTexture2DSRV();
 
     D3D12_CPU_DESCRIPTOR_HANDLE getCPUHandle(UINT index) const;
     D3D12_GPU_DESCRIPTOR_HANDLE getGPUHandle(UINT index) const;

@@ -19,9 +19,10 @@
 
 bool Exercise5::init()
 {
-    if (!duck.Load("Duck.gltf")) 
+    if (!duck.Load("D:/Development/MyRepository/UPC-Engine/Engine/Game/Assets/Models/Duck/Duck.gltf")) 
     {
-        Logger::Err("Duck Model not loaded");
+        Logger::Err("Exercise5: Duck Model not loaded");
+        return false;
     }
 
     if (!createRootSignature())
@@ -134,22 +135,30 @@ void Exercise5::render()
             // Vertex buffer
             commandList->IASetVertexBuffers(0, 1, &mesh.vertexView);
 
-            // Material CBV slot 1 - FAKE por ahora
-            commandList->SetGraphicsRootConstantBufferView(1, 0);  // Fake GPU address
+            const BasicMaterial& mat = duck.materials[mesh.materialIndex];
+            commandList->SetGraphicsRootConstantBufferView(1, mat.materialBuffer->GetGPUVirtualAddress());
 
-            // Texture SRV slot 2 - Fake
-            D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(0);
-            commandList->SetGraphicsRootDescriptorTable(2, texHandle);
+            // Texture real
+            D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(mat.colourTexSRV);
+            //commandList->SetGraphicsRootDescriptorTable(2, texHandle);
 
             // Sampler slot 3
             D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle((UINT)samplerMode);
             commandList->SetGraphicsRootDescriptorTable(3, sampHandle);
 
             // Draw
-            if (mesh.numIndices > 0)
+            if (mesh.numIndices > 0 && mesh.indexBuffer != nullptr &&
+                mesh.indexView.BufferLocation != 0 && mesh.indexView.SizeInBytes > 0)
+            {
+                commandList->IASetIndexBuffer(&mesh.indexView);
                 commandList->DrawIndexedInstanced(mesh.numIndices, 1, 0, 0, 0);
+            }
             else
+            {
+                LOG("Index inválido: %p %llx %u - DrawInstanced",
+                    mesh.indexBuffer, mesh.indexView.BufferLocation, mesh.indexView.SizeInBytes);
                 commandList->DrawInstanced(mesh.numVertices, 1, 0, 0);
+            }
         }
     }
 

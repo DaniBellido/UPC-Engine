@@ -7,29 +7,44 @@
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #define TINYGLTF_NO_STB_IMAGE
 #define TINYGLTF_NO_EXTERNAL_IMAGE 
+#define TINYGLTF_IMPLEMENTATION /* Only in one of the includes */
 
 #include "tiny_gltf.h"
 
 bool Model::Load(const char* assetFileName)
 {
+    // TEST if file exists
     Logger::Warn("Searching: " + std::string(assetFileName));
+    std::ifstream testFile(assetFileName, std::ios::binary);
 
+    if (!testFile.is_open()) 
+    {
+        Logger::Err("File does not exist: " + std::string(assetFileName));
+    }
+    else 
+    {
+        Logger::Log("File found!");
+        testFile.close();
+    }
+    
 	tinygltf::TinyGLTF gltfContext;
 	tinygltf::Model model;
 	std::string error, warning;
-	bool loadOk = gltfContext.LoadASCIIFromFile(&model, &error, &warning, assetFileName);
+    bool loadOk = gltfContext.LoadASCIIFromFile(&model, &error, &warning, assetFileName);
+
+    Logger::Log("RESULT: loadOk=" + std::to_string((int)loadOk) + " | error_len=" + std::to_string(error.size()));
 
     if (!loadOk) 
     {
-        Logger::Err("ERROR tinygltf: " + error);
-        Logger::Warn("WARNING: " + warning);
+        Logger::Err("tinygltf: " + error);
+        Logger::Warn("tinygltf: " + warning);
         return false;
     }
 
     // Load Material
     for (const auto& mat : model.materials) {
         BasicMaterial newMat;
-        newMat.load(model, mat, "assets/");
+        newMat.load(model, mat, "assets/");  // real path of the material?
         materials.push_back(newMat);
     }
 

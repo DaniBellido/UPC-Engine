@@ -15,10 +15,10 @@ public:
     Mesh() = default;
 
     // Vertex Buffer (primitive vertex attributes POSITION, NORMAL, TEXCOORD_0...)
-    ID3D12Resource* vertexBuffer = nullptr;
+    ComPtr<ID3D12Resource> vertexBuffer = nullptr;
 
     // Index Buffer (primitive indices)
-    ID3D12Resource* indexBuffer = nullptr;
+    ComPtr<ID3D12Resource> indexBuffer = nullptr;
 
     // Views
     D3D12_VERTEX_BUFFER_VIEW vertexView{};

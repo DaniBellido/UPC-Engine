@@ -2,6 +2,7 @@
 #include "BasicMaterial.h"
 #include "Application.h"
 #include "ResourcesModule.h"
+#include "ShaderDescriptorsModule.h"
 
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #define TINYGLTF_NO_STB_IMAGE
@@ -15,6 +16,9 @@ void BasicMaterial::load(const tinygltf::Model& model, const tinygltf::Material&
 
 	baseColour = Vector4(float(pbr.baseColorFactor[0]), float(pbr.baseColorFactor[1]),
 		float(pbr.baseColorFactor[2]), float(pbr.baseColorFactor[3]));
+
+	colourTexSRV = app->getShaderDescriptors()->createNullTexture2DSRV();
+
 	if (pbr.baseColorTexture.index >= 0)
 	{
 		const tinygltf::Texture& texture = model.textures[pbr.baseColorTexture.index];
@@ -22,7 +26,13 @@ void BasicMaterial::load(const tinygltf::Model& model, const tinygltf::Material&
 
 		if (!image.uri.empty())
 		{
-			colourTexSRV = app->getResources()->createTextureFromFile(std::string(basePath) + image.uri).Get();
+			ID3D12Resource* tex = app->getResources()->createTextureFromFile(std::string(basePath) + image.uri).Get();
+			colourTexSRV = app->getShaderDescriptors()->createSRV(tex);
+			hasColourTexture = TRUE;
 		}
 	}
+
+	// CBV
+	MaterialData data = { baseColour, hasColourTexture, {} };
+	materialBuffer = app->getResources()->createDefaultBuffer(&data, alignUp(sizeof(MaterialData), 256), "MaterialCBV").Get();
 }

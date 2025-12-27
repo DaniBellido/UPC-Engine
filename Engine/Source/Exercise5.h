@@ -26,7 +26,7 @@ private:
 
 	Model duck;
 	float rotationX, rotationY, rotationZ = 0.0f;
-	float scaleX{ 1.0f }, scaleY{ 1.0f }, scaleZ{ 1.0f };
+	float scaleX{ 0.01f }, scaleY{ 0.01f }, scaleZ{ 0.01f };
 	float positionX, positionY, positionZ = 0.0f;
 
 	float camSpeed = 5.0f;

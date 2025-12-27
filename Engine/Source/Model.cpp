@@ -44,9 +44,20 @@ bool Model::Load(const char* assetFileName)
     // Load Material
     for (const auto& mat : model.materials) {
         BasicMaterial newMat;
-        newMat.load(model, mat, "assets/");  // real path of the material?
+        newMat.load(model, mat, "D:/Development/MyRepository/UPC-Engine/Engine/Game/Assets/Models/Duck/");  
         materials.push_back(newMat);
     }
+
+    Logger::Log("=== MATERIALS DEBUG ===");
+    for (size_t i = 0; i < materials.size(); i++)
+    {
+        std::string hasTexStr = materials[i].hasColourTexture ? "TRUE" : "FALSE";
+        std::string bufferStr = materials[i].materialBuffer ? "OK" : "NULL";
+        Logger::Log("Mat[" + std::to_string(i) + "]: hasTex=" + hasTexStr +
+            " srv=" + std::to_string(materials[i].colourTexSRV) +
+            " buffer=" + bufferStr);
+    }
+    Logger::Log("=== END MATERIALS DEBUG ===");
 
     // Load Mesh
     for (const auto& gltfMesh : model.meshes) {

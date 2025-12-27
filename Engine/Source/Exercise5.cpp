@@ -138,12 +138,14 @@ void Exercise5::render()
             const BasicMaterial& mat = duck.materials[mesh.materialIndex];
             commandList->SetGraphicsRootConstantBufferView(1, mat.materialBuffer->GetGPUVirtualAddress());
 
+            //Logger::Err(std::to_string(mat.colourTexSRV));  // mat.colourTexSRV = 5?
+
             // Texture real
-            D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(mat.colourTexSRV);
-            //commandList->SetGraphicsRootDescriptorTable(2, texHandle);
+            D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(0);                  // mat.colourTexSRV as a gpuHandle parameter triggers a crash
+            commandList->SetGraphicsRootDescriptorTable(2, texHandle);                        // <<<<<<< CRASH
 
             // Sampler slot 3
-            D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle((UINT)samplerMode);
+            D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle((0));
             commandList->SetGraphicsRootDescriptorTable(3, sampHandle);
 
             // Draw
@@ -246,8 +248,8 @@ bool Exercise5::createPSO()
     // ------------------------------------------------------------
     // Load compiled shaders (.cso files)
     // ------------------------------------------------------------
-    auto dataVS = DX::ReadData(L"Exercise4VS.cso");
-    auto dataPS = DX::ReadData(L"Exercise4PS.cso");
+    auto dataVS = DX::ReadData(L"Exercise5VS.cso");
+    auto dataPS = DX::ReadData(L"Exercise5PS.cso");
 
     if (dataVS.empty() || dataPS.empty()) {
         Logger::Err("ERROR: VS or PS .cso is empty — check build output and paths");
@@ -255,7 +257,7 @@ bool Exercise5::createPSO()
     }
     else
     {
-        Logger::Warn("Exercise5: VS Data & PS Data: Needs to be updated");
+        Logger::Log("Exercise5: VS Data & PS Data: OK!");
     }
 
     // ------------------------------------------------------------
@@ -314,11 +316,11 @@ void Exercise5::ExerciseMenu(CameraModule* camera)
         ImGui::Text("Scale");
         ImGui::SameLine(85.0f);
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
-        ImGui::SliderFloat3("##Sca", &scaleX, 0.5f, 10.0f);
+        ImGui::SliderFloat3("##Sca", &scaleX, 0.01f, 1.0f);
         ImGui::SameLine();
         if (ImGui::Button("Reset##Scale", ImVec2(50, 0)))
         {
-            scaleX = scaleY = scaleZ = 1.0f;
+            scaleX = scaleY = scaleZ = 0.01f;
         }
 
     }
@@ -385,7 +387,7 @@ void Exercise5::ExerciseMenu(CameraModule* camera)
         // Model resets
         positionX = positionY = positionZ = 0.0f;
         rotationX = rotationY = rotationZ = 0.0f;
-        scaleX = scaleY = scaleZ = 1.0f;
+        scaleX = scaleY = scaleZ = 0.01f;
         // Sampler reset
         samplerMode = 0;
         // Camera resets  

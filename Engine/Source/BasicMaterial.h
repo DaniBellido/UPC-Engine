@@ -14,7 +14,7 @@ public:
     BasicMaterial() = default;
 
     // Material Constant Buffer (CBV)
-    ID3D12Resource* materialBuffer = nullptr;
+    ComPtr<ID3D12Resource> materialBuffer;
 
     // SRV 
     UINT colourTexSRV = UINT_MAX;        

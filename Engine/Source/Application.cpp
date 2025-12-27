@@ -26,9 +26,6 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
     modules.push_back(samplers = new SamplersModule());
     modules.push_back(camera = new CameraModule());
 
-
-    // Rendering exercises
-    modules.push_back(new ExerciseModule(d3d12));
     // Last Module to be pushed must be the Editor Module
     modules.push_back(new EditorModule((HWND)hWnd, d3d12));
 

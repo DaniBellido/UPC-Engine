@@ -68,7 +68,7 @@ UINT ShaderDescriptorsModule::createNullTexture2DSRV()
     srvDesc.Texture2D.MipLevels = 1;
     srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
     ID3D12Device5* device = app->getD3D12()->getDevice();
-    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(getCPUHandle(nextFreeSlot), index, descriptorSize);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE handle(getCPUHandle(index), index, descriptorSize);
     device->CreateShaderResourceView(nullptr, &srvDesc, handle);
     return index;
 }

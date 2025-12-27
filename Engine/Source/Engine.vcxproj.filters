@@ -325,5 +325,11 @@
     <FxCompile Include="Exercise4PS.hlsl">
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Exercise5VS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Exercise5PS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

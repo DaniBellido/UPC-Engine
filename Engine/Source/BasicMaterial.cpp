@@ -17,11 +17,8 @@ void BasicMaterial::load(const tinygltf::Model& model, const tinygltf::Material&
 	baseColour = Vector4(float(pbr.baseColorFactor[0]), float(pbr.baseColorFactor[1]),
 		float(pbr.baseColorFactor[2]), float(pbr.baseColorFactor[3]));
 
-
-
+	hasColourTexture = FALSE;
 	colourTexSRV = app->getShaderDescriptors()->createNullTexture2DSRV();
-
-	Logger::Warn("First value: " + std::to_string(colourTexSRV));
 
 	if (pbr.baseColorTexture.index >= 0)
 	{
@@ -30,15 +27,13 @@ void BasicMaterial::load(const tinygltf::Model& model, const tinygltf::Material&
 
 		if (!image.uri.empty())
 		{
-			ComPtr<ID3D12Resource> tex = app->getResources()->createTextureFromFile(std::string(basePath) + image.uri);
+			tex = app->getResources()->createTextureFromFile(std::string(basePath) + image.uri);
 			colourTexSRV = app->getShaderDescriptors()->createSRV(tex.Get());
 			hasColourTexture = TRUE;
-
-			Logger::Warn("Second Value: " + std::to_string(colourTexSRV));
 		}
 	}
 
 	// CBV
 	MaterialData data = { baseColour, hasColourTexture, {} };
-	materialBuffer = app->getResources()->createDefaultBuffer(&data, alignUp(sizeof(MaterialData), 256), "MaterialCBV").Get();
+	materialBuffer = app->getResources()->createDefaultBuffer(&data, alignUp(sizeof(MaterialData), 256), "MaterialCBV");
 }

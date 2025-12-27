@@ -102,7 +102,7 @@ void Exercise5::render()
 
     mvpMatrix = (model * view * proj).Transpose();
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
-    duck.modelMatrix = model;
+    duck.setModelMatrix(model);
 
     // ------------------------------------------------------------
     // BIND TEXTURES
@@ -128,41 +128,40 @@ void Exercise5::render()
     // ------------------------------------------------------------
     if (isGeoVisible)
     {
-        for (size_t i = 0; i < duck.meshes.size(); i++)
+        for (size_t i = 0; i < duck.getMeshCount(); ++i)
         {
-            const auto& mesh = duck.meshes[i];
+            const Mesh& mesh = duck.getMesh(i);
 
             // Vertex buffer
-            commandList->IASetVertexBuffers(0, 1, &mesh.vertexView);
+            const auto& vbv = mesh.getVertexView();
+            commandList->IASetVertexBuffers(0, 1, &vbv);
 
-            const BasicMaterial& mat = duck.materials[mesh.materialIndex];
-            commandList->SetGraphicsRootConstantBufferView(1, mat.materialBuffer->GetGPUVirtualAddress());
+            // Material
+            const BasicMaterial& mat = duck.getMaterialForMesh(i);
+            commandList->SetGraphicsRootConstantBufferView(1, mat.getMaterialBufferGPU());
 
-            //Logger::Err(std::to_string(mat.colourTexSRV));  // mat.colourTexSRV = 5?
-
-            // Texture real
-            D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(0);                  // mat.colourTexSRV as a gpuHandle parameter triggers a crash
-            commandList->SetGraphicsRootDescriptorTable(2, texHandle);                        // <<<<<<< CRASH
+            // Texture
+            D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(mat.getColourTexSRV());
+            commandList->SetGraphicsRootDescriptorTable(2, texHandle);
 
             // Sampler slot 3
-            D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle((0));
+            D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle(0);
             commandList->SetGraphicsRootDescriptorTable(3, sampHandle);
 
             // Draw
-            if (mesh.numIndices > 0 && mesh.indexBuffer != nullptr &&
-                mesh.indexView.BufferLocation != 0 && mesh.indexView.SizeInBytes > 0)
+            if (mesh.hasIndices())
             {
-                commandList->IASetIndexBuffer(&mesh.indexView);
-                commandList->DrawIndexedInstanced(mesh.numIndices, 1, 0, 0, 0);
+                const auto& ibv = mesh.getIndexView();
+                commandList->IASetIndexBuffer(&ibv);
+                commandList->DrawIndexedInstanced(mesh.getIndexCount(), 1, 0, 0, 0);
             }
             else
             {
-                LOG("Index inválido: %p %llx %u - DrawInstanced",
-                    mesh.indexBuffer, mesh.indexView.BufferLocation, mesh.indexView.SizeInBytes);
-                commandList->DrawInstanced(mesh.numVertices, 1, 0, 0);
+                commandList->DrawInstanced(mesh.getVertexCount(), 1, 0, 0);
             }
         }
     }
+
 
     app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
 }

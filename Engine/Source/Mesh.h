@@ -10,27 +10,34 @@ struct Vertex
 
 class Mesh
 {
+private:
+    ComPtr<ID3D12Resource> vertexBuffer;
+    ComPtr<ID3D12Resource> indexBuffer;
+
+    D3D12_VERTEX_BUFFER_VIEW vertexView{};
+    D3D12_INDEX_BUFFER_VIEW indexView{};
+
+    uint32_t numVertices = 0;
+    uint32_t numIndices = 0;
+
+    int materialIndex = -1;
+
 public:
 
     Mesh() = default;
 
-    // Vertex Buffer (primitive vertex attributes POSITION, NORMAL, TEXCOORD_0...)
-    ComPtr<ID3D12Resource> vertexBuffer = nullptr;
+    const D3D12_VERTEX_BUFFER_VIEW& getVertexView() const { return vertexView; }
+    const D3D12_INDEX_BUFFER_VIEW& getIndexView()  const { return indexView; }
+    uint32_t getVertexCount() const { return numVertices; }
+    uint32_t getIndexCount()  const { return numIndices; }
+    int      getMaterialIndex() const { return materialIndex; }
 
-    // Index Buffer (primitive indices)
-    ComPtr<ID3D12Resource> indexBuffer = nullptr;
+    bool hasIndices() const { return numIndices > 0; }
 
-    // Views
-    D3D12_VERTEX_BUFFER_VIEW vertexView{};
-    D3D12_INDEX_BUFFER_VIEW indexView{};
-
-    // Counters
-    uint32_t numVertices = 0;
-    uint32_t numIndices = 0; 
-
-    int materialIndex = -1;
+    void setMaterialIndex(int idx) { materialIndex = idx; }
 
     void load(const tinygltf::Model& model, const tinygltf::Mesh& gltfMesh, const tinygltf::Primitive& primitive);
+
 
 };
 

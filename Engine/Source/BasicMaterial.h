@@ -2,7 +2,8 @@
 
 namespace tinygltf { class Model; struct Material; }
 
-struct MaterialData {
+struct MaterialData 
+{
     Vector4 baseColour;
     BOOL hasColourTexture;  
     UINT padding[3];
@@ -10,20 +11,27 @@ struct MaterialData {
 
 class BasicMaterial
 {
-public:
-    BasicMaterial() = default;
+private:
 
-    // Material Constant Buffer (CBV)
     ComPtr<ID3D12Resource> materialBuffer;
+    ComPtr<ID3D12Resource> tex;
 
-    // SRV 
-    UINT colourTexSRV = UINT_MAX;        
+    UINT colourTexSRV = UINT_MAX;
 
-
-    // Material data
     Vector4 baseColour = { 1,1,1,1 };
     BOOL hasColourTexture = FALSE;
 
+public:
+    BasicMaterial() = default;
+
     void load(const tinygltf::Model& model, const tinygltf::Material& material, const char* basePath);
+
+    ID3D12Resource* getMaterialBuffer() const { return materialBuffer.Get(); }
+    D3D12_GPU_VIRTUAL_ADDRESS getMaterialBufferGPU() const { return materialBuffer ? materialBuffer->GetGPUVirtualAddress() : 0; }
+
+    UINT  getColourTexSRV()      const { return colourTexSRV; }
+    bool  hasTexture()           const { return hasColourTexture == TRUE; }
+    const Vector4& getBaseColour() const { return baseColour; }
+
 };
 

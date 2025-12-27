@@ -51,10 +51,10 @@ bool Model::Load(const char* assetFileName)
     Logger::Log("=== MATERIALS DEBUG ===");
     for (size_t i = 0; i < materials.size(); i++)
     {
-        std::string hasTexStr = materials[i].hasColourTexture ? "TRUE" : "FALSE";
-        std::string bufferStr = materials[i].materialBuffer ? "OK" : "NULL";
+        std::string hasTexStr = materials[i].hasTexture() ? "TRUE" : "FALSE";
+        std::string bufferStr = materials[i].getMaterialBuffer() ? "OK" : "NULL";
         Logger::Log("Mat[" + std::to_string(i) + "]: hasTex=" + hasTexStr +
-            " srv=" + std::to_string(materials[i].colourTexSRV) +
+            " srv=" + std::to_string(materials[i].getColourTexSRV()) +
             " buffer=" + bufferStr);
     }
     Logger::Log("=== END MATERIALS DEBUG ===");
@@ -64,7 +64,7 @@ bool Model::Load(const char* assetFileName)
         for (const auto& prim : gltfMesh.primitives) {
             Mesh newMesh;
             newMesh.load(model, gltfMesh, prim);
-            newMesh.materialIndex = prim.material;
+            newMesh.setMaterialIndex(prim.material);
             meshes.push_back(newMesh);
         }
     }

@@ -11,6 +11,14 @@
 
 #include "tiny_gltf.h"
 
+Model::Model()
+{
+}
+
+Model::~Model()
+{
+}
+
 bool Model::Load(const char* assetFileName)
 {
     // TEST if file exists

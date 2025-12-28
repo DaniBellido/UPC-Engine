@@ -4,6 +4,8 @@
 #include "Model.h"
 
 class CameraModule;
+class ShaderDescriptorsModule;
+class SamplersModule;
 
 class Exercise5 : public Module
 {
@@ -24,10 +26,10 @@ private:
 	uint32_t samplerIndices[4] = { 0,1,2,3 };
 	int samplerMode = 0;
 
-	Model duck;
-	float rotationX, rotationY, rotationZ = 0.0f;
+	std::unique_ptr<Model> duck;
+	float rotationX{ 0.0f }, rotationY{ 0.0f }, rotationZ{ 0.0f };
 	float scaleX{ 0.01f }, scaleY{ 0.01f }, scaleZ{ 0.01f };
-	float positionX, positionY, positionZ = 0.0f;
+	float positionX{ 0.0f }, positionY{ 0.0f }, positionZ{ 0.0f };
 
 	float camSpeed = 5.0f;
 	float camHeight = 3.0f;
@@ -44,12 +46,16 @@ private:
 	bool createRootSignature();
 	bool createPSO();
 
+	void loadModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers);
+
 	void ExerciseMenu(CameraModule* camera);
 
 	float DegreesToRadians(float degrees) { return degrees * 3.14159265359f / 180.0f; }
 
 
 public:
+	Exercise5();
+	~Exercise5();
 
 	bool init() override;
 	void render() override;

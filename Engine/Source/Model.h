@@ -14,6 +14,9 @@ private:
     Matrix modelMatrix = Matrix::Identity;
 
 public:
+    Model();
+    ~Model();
+
 	bool Load(const char* assetFileName);
 
     const std::vector<Mesh>& getMeshes()   const { return meshes; }

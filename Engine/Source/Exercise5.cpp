@@ -17,9 +17,19 @@
 #include "Mesh.h"
 #include "BasicMaterial.h"
 
+Exercise5::Exercise5()
+{
+}
+
+Exercise5::~Exercise5()
+{
+}
+
 bool Exercise5::init()
 {
-    if (!duck.Load("D:/Development/MyRepository/UPC-Engine/Engine/Game/Assets/Models/Duck/Duck.gltf")) 
+    duck = std::make_unique<Model>();
+
+    if (!duck->Load("D:/Development/MyRepository/UPC-Engine/Engine/Game/Assets/Models/Duck/Duck.gltf")) 
     {
         Logger::Err("Exercise5: Duck Model not loaded");
         return false;
@@ -102,7 +112,7 @@ void Exercise5::render()
 
     mvpMatrix = (model * view * proj).Transpose();
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
-    duck.setModelMatrix(model);
+    duck->setModelMatrix(model);
 
     // ------------------------------------------------------------
     // BIND TEXTURES
@@ -110,7 +120,8 @@ void Exercise5::render()
     ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
     SamplersModule* samplers = app->getSamplers();
 
-    ID3D12DescriptorHeap* heaps[] = {
+    ID3D12DescriptorHeap* heaps[] = 
+    {
         shaders->getHeap(),     // t0: texture
         samplers->getHeap()     // s0: sampler
     };
@@ -128,38 +139,7 @@ void Exercise5::render()
     // ------------------------------------------------------------
     if (isGeoVisible)
     {
-        for (size_t i = 0; i < duck.getMeshCount(); ++i)
-        {
-            const Mesh& mesh = duck.getMesh(i);
-
-            // Vertex buffer
-            const auto& vbv = mesh.getVertexView();
-            commandList->IASetVertexBuffers(0, 1, &vbv);
-
-            // Material
-            const BasicMaterial& mat = duck.getMaterialForMesh(i);
-            commandList->SetGraphicsRootConstantBufferView(1, mat.getMaterialBufferGPU());
-
-            // Texture
-            D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(mat.getColourTexSRV());
-            commandList->SetGraphicsRootDescriptorTable(2, texHandle);
-
-            // Sampler slot 3
-            D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle(0);
-            commandList->SetGraphicsRootDescriptorTable(3, sampHandle);
-
-            // Draw
-            if (mesh.hasIndices())
-            {
-                const auto& ibv = mesh.getIndexView();
-                commandList->IASetIndexBuffer(&ibv);
-                commandList->DrawIndexedInstanced(mesh.getIndexCount(), 1, 0, 0, 0);
-            }
-            else
-            {
-                commandList->DrawInstanced(mesh.getVertexCount(), 1, 0, 0);
-            }
-        }
+        loadModel(commandList, shaders, samplers);
     }
 
 
@@ -284,6 +264,43 @@ bool Exercise5::createPSO()
     return SUCCEEDED(app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso)));
 }
 
+void Exercise5::loadModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers)
+{
+    for (size_t i = 0; i < duck->getMeshCount(); ++i)
+    {
+        const Mesh& mesh = duck->getMesh(i);
+
+        // Vertex buffer
+        const auto& vbv = mesh.getVertexView();
+        commandList->IASetVertexBuffers(0, 1, &vbv);
+
+        // Material
+        const BasicMaterial& mat = duck->getMaterialForMesh(i);
+        commandList->SetGraphicsRootConstantBufferView(1, mat.getMaterialBufferGPU());
+
+        // Texture
+        D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(mat.getColourTexSRV());
+        commandList->SetGraphicsRootDescriptorTable(2, texHandle);
+
+        // Sampler slot 3
+        D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle(0);
+        commandList->SetGraphicsRootDescriptorTable(3, sampHandle);
+
+        // Draw
+        if (mesh.hasIndices())
+        {
+            const auto& ibv = mesh.getIndexView();
+            commandList->IASetIndexBuffer(&ibv);
+            commandList->DrawIndexedInstanced(mesh.getIndexCount(), 1, 0, 0, 0);
+        }
+        else
+        {
+            commandList->DrawInstanced(mesh.getVertexCount(), 1, 0, 0);
+        }
+    }
+
+}
+
 void Exercise5::ExerciseMenu(CameraModule* camera)
 {
     ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
@@ -405,5 +422,7 @@ void Exercise5::ExerciseMenu(CameraModule* camera)
 
     ImGui::End();
 }
+
+
 
 

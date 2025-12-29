@@ -264,6 +264,7 @@ void EditorModule::drawToolbar()
 		ImGui::BulletText("Q / E: Move down/up");
 		ImGui::BulletText("Left Shift: Hold to double movement speed");
 		ImGui::BulletText("F: Reset camera focus to origin");
+		ImGui::BulletText("Z / X / C: Translate/Rotate/Scale");
 
 		ImGui::End();
 	}

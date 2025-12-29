@@ -29,7 +29,7 @@ bool Exercise5::init()
 {
     duck = std::make_unique<Model>();
 
-    if (!duck->Load("D:/Development/MyRepository/UPC-Engine/Engine/Game/Assets/Models/Duck/Duck.gltf")) 
+    if (!duck->Load("D:/Development/MyRepository/UPC-Engine/Engine/Game/Assets/Models/Duck/", "Duck.gltf")) 
     {
         Logger::Err("Exercise5: Duck Model not loaded");
         return false;
@@ -96,23 +96,25 @@ void Exercise5::render()
     // ----------------------------------------------------------------
     // Model-View-Projection Matrix Pipeline
     // ----------------------------------------------------------------
-    SimpleMath::Matrix rotX = SimpleMath::Matrix::CreateRotationX(DegreesToRadians(rotationX));
-    SimpleMath::Matrix rotY = SimpleMath::Matrix::CreateRotationY(DegreesToRadians(rotationY));
-    SimpleMath::Matrix rotZ = SimpleMath::Matrix::CreateRotationZ(DegreesToRadians(rotationZ));
 
-    SimpleMath::Matrix scale = SimpleMath::Matrix::CreateScale(scaleX, scaleY, scaleZ);
-    SimpleMath::Matrix position = SimpleMath::Matrix::CreateTranslation(positionX, positionY, positionZ);
+    SimpleMath::Matrix model =
+        SimpleMath::Matrix::CreateScale(scaleX, scaleY, scaleZ) *
+        SimpleMath::Matrix::CreateFromQuaternion(qRot) *
+        SimpleMath::Matrix::CreateTranslation(positionX, positionY, positionZ);
 
-    SimpleMath::Matrix model = scale * rotX * rotY * rotZ * position;
-
-
-    SimpleMath::Matrix view = camera->getView();
-    float aspect = camera->getAspect();
-    SimpleMath::Matrix proj = camera->GetProjection(aspect);
-
-    mvpMatrix = (model * view * proj).Transpose();
-    commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
     duck->setModelMatrix(model);
+
+
+    if (isGizmoVisible) 
+    {
+        ApplyImGuizmo(camera);
+    }
+    
+
+    mvpMatrix = (duck->getModelMatrix() * camera->getView() * camera->GetProjection(camera->getAspect())).Transpose();
+
+    commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
+   
 
     // ------------------------------------------------------------
     // BIND TEXTURES
@@ -142,8 +144,7 @@ void Exercise5::render()
         loadModel(commandList, shaders, samplers);
     }
 
-
-    app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
+    app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), camera->getView(), camera->GetProjection(camera->getAspect()));
 }
 
 bool Exercise5::createRootSignature()
@@ -321,11 +322,20 @@ void Exercise5::ExerciseMenu(CameraModule* camera)
         ImGui::Text("Rotation");
         ImGui::SameLine(85.0f);
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
-        ImGui::SliderFloat3("##Rot", &rotationX, 0.0f, 360.0f);
+        if (ImGui::SliderFloat3("##Rot", &rotationX, 0.0f, 360.0f))
+        {
+            float pitch = XMConvertToRadians(rotationX);
+            float yaw = XMConvertToRadians(rotationY);
+            float roll = XMConvertToRadians(rotationZ);
+
+            qRot = SimpleMath::Quaternion::CreateFromYawPitchRoll(yaw, pitch, roll);
+        }
+
         ImGui::SameLine();
         if (ImGui::Button("Reset##Rot", ImVec2(50, 0)))
         {
             rotationX = rotationY = rotationZ = 0.0f;
+            qRot = SimpleMath::Quaternion::Identity;
         }
 
         // Scale
@@ -339,13 +349,19 @@ void Exercise5::ExerciseMenu(CameraModule* camera)
             scaleX = scaleY = scaleZ = 0.01f;
         }
 
-    }
+        ImGui::Separator();
 
-    if (ImGui::CollapsingHeader("Texture Filtering", ImGuiTreeNodeFlags_DefaultOpen))
-    {
-        const char* samplerNames[] = { "Wrap+Bilinear", "Clamp+Bilinear", "Wrap+Point", "Clamp+Point" };
-        ImGui::Text("Sampler"); ImGui::SameLine(85.0f);
-        ImGui::Combo("##Sampler", &samplerMode, samplerNames, IM_ARRAYSIZE(samplerNames));
+        if (ImGui::RadioButton("Translate [Z]", currentOperation == ImGuizmo::TRANSLATE) || ImGui::IsKeyPressed(ImGuiKey_Z))
+            currentOperation = ImGuizmo::TRANSLATE;
+        ImGui::SameLine(0, 10);
+
+        if (ImGui::RadioButton("Rotate [X]", currentOperation == ImGuizmo::ROTATE) || ImGui::IsKeyPressed(ImGuiKey_X))
+            currentOperation = ImGuizmo::ROTATE;
+        ImGui::SameLine(0, 10);
+
+        if (ImGui::RadioButton("Scale [C]", currentOperation == ImGuizmo::SCALE) || ImGui::IsKeyPressed(ImGuiKey_C))
+            currentOperation = ImGuizmo::SCALE;
+
     }
 
     if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
@@ -390,11 +406,12 @@ void Exercise5::ExerciseMenu(CameraModule* camera)
 
     if (ImGui::CollapsingHeader("Dsiplay", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Checkbox("Show grid", &isGridVisible);
+        ImGui::Checkbox("Show grid    ", &isGridVisible);
         ImGui::SameLine();
         ImGui::Checkbox("Show axis", &isAxisVisible);
-        ImGui::SameLine();
         ImGui::Checkbox("Show model", &isGeoVisible);
+        ImGui::SameLine();
+        ImGui::Checkbox("Show gizmo", &isGizmoVisible);
     }
 
     ImGui::Separator();
@@ -403,24 +420,86 @@ void Exercise5::ExerciseMenu(CameraModule* camera)
         // Model resets
         positionX = positionY = positionZ = 0.0f;
         rotationX = rotationY = rotationZ = 0.0f;
+        qRot = SimpleMath::Quaternion::Identity;
         scaleX = scaleY = scaleZ = 0.01f;
-        // Sampler reset
-        samplerMode = 0;
+
         // Camera resets  
         camSpeed = 5.0f;
-        camHeight = 3.0f;
-        camSide = 0.0f;
         camFov = camera->SetFov(XM_PIDIV4);
         camNear = camera->SetNearPlane(0.1f);
         camFar = camera->SetFarPlane(100.0);
+
         //Display
         isGridVisible = true;
         isAxisVisible = true;
         isGeoVisible = true;
+        isGizmoVisible = true;
     }
 
 
     ImGui::End();
+}
+
+void Exercise5::ApplyImGuizmo(CameraModule* camera)
+{
+
+    ImGuizmo::BeginFrame();
+    ImGuizmo::Enable(true);
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuizmo::SetRect(0.0f, 0.0f, io.DisplaySize.x, io.DisplaySize.y);
+
+    ImGuizmo::SetOrthographic(false);
+    ImGuizmo::SetGizmoSizeClipSpace(0.1f);
+
+    // -------------------------------
+    // ImGuizmo Matrix
+    // -------------------------------
+    DirectX::XMMATRIX modelM = duck->getModelMatrix();
+    DirectX::XMMATRIX viewM = camera->getView();
+    DirectX::XMMATRIX projM = camera->GetProjection(camera->getAspect());
+
+    // XMFLOAT4X4 as intermediate buffer
+    DirectX::XMFLOAT4X4 modelF;
+    DirectX::XMFLOAT4X4 viewF;
+    DirectX::XMFLOAT4X4 projF;
+
+    DirectX::XMStoreFloat4x4(&modelF, modelM);
+    DirectX::XMStoreFloat4x4(&viewF, viewM);
+    DirectX::XMStoreFloat4x4(&projF, projM);
+
+    // ImGuizmo Call
+    ImGuizmo::Manipulate(&viewF.m[0][0], &projF.m[0][0], currentOperation, ImGuizmo::WORLD, &modelF.m[0][0]);
+
+    // -------------------------------
+    // Apply changes to duck
+    // -------------------------------
+    if (ImGuizmo::IsUsing())
+    {
+        DirectX::XMMATRIX newModel = DirectX::XMLoadFloat4x4(&modelF);
+        duck->setModelMatrix(SimpleMath::Matrix(newModel));
+
+        // Actualiza quaternion interno
+        SimpleMath::Vector3 scale, pos;
+        SimpleMath::Quaternion rot;
+        SimpleMath::Matrix(newModel).Decompose(scale, rot, pos);
+
+        qRot = rot;          // rotacion
+        scaleX = scale.x;    // scale
+        scaleY = scale.y;
+        scaleZ = scale.z;
+        positionX = pos.x;   // position
+        positionY = pos.y;
+        positionZ = pos.z;
+
+        // conversion
+        SimpleMath::Vector3 euler = rot.ToEuler();
+        rotationX = XMConvertToDegrees(euler.x);  // pitch
+        rotationY = XMConvertToDegrees(euler.y);  // yaw  
+        rotationZ = XMConvertToDegrees(euler.z);  // roll
+  
+    }
+
 }
 
 

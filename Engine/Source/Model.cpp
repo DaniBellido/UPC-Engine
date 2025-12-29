@@ -19,15 +19,17 @@ Model::~Model()
 {
 }
 
-bool Model::Load(const char* assetFileName)
+bool Model::Load(const char* folderName, const char* assetFileName)
 {
+    std::string fullPath = std::string(folderName) + "/" + assetFileName;
+
     // TEST if file exists
-    Logger::Warn("Searching: " + std::string(assetFileName));
-    std::ifstream testFile(assetFileName, std::ios::binary);
+    Logger::Warn("Searching: " + std::string(fullPath));
+    std::ifstream testFile(fullPath, std::ios::binary);
 
     if (!testFile.is_open()) 
     {
-        Logger::Err("File does not exist: " + std::string(assetFileName));
+        Logger::Err("File does not exist: " + std::string(fullPath));
     }
     else 
     {
@@ -38,7 +40,7 @@ bool Model::Load(const char* assetFileName)
 	tinygltf::TinyGLTF gltfContext;
 	tinygltf::Model model;
 	std::string error, warning;
-    bool loadOk = gltfContext.LoadASCIIFromFile(&model, &error, &warning, assetFileName);
+    bool loadOk = gltfContext.LoadASCIIFromFile(&model, &error, &warning, fullPath);
 
     Logger::Log("RESULT: loadOk=" + std::to_string((int)loadOk) + " | error_len=" + std::to_string(error.size()));
 
@@ -52,7 +54,7 @@ bool Model::Load(const char* assetFileName)
     // Load Material
     for (const auto& mat : model.materials) {
         BasicMaterial newMat;
-        newMat.load(model, mat, "D:/Development/MyRepository/UPC-Engine/Engine/Game/Assets/Models/Duck/");  
+        newMat.load(model, mat, folderName);  
         materials.push_back(newMat);
     }
 

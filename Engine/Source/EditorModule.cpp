@@ -12,6 +12,7 @@ enum class ExerciseSelection
 	Exercise3,
 	Exercise4,
 	Exercise5,
+	Exercise6,
 	// Add more exercises
 };
 
@@ -100,6 +101,9 @@ void EditorModule::render()
 
 	case ExerciseSelection::Exercise5:
 		exercise->exercise5();
+		break;
+	case ExerciseSelection::Exercise6:
+		exercise->exercise6();
 		break;
 
 	default:
@@ -308,6 +312,12 @@ void EditorModule::drawExerciseMenu()
 	{
 		Logger::Log("Selectable 5 clicked!");
 		currentExercise = ExerciseSelection::Exercise5;
+	}
+
+	if (ImGui::Selectable("Exercise 6: Phong Shading", currentExercise == ExerciseSelection::Exercise6))
+	{
+		Logger::Log("Selectable 6 clicked!");
+		currentExercise = ExerciseSelection::Exercise6;
 	}
 
 	// Add more:

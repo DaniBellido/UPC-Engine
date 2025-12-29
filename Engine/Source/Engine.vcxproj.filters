@@ -112,6 +112,7 @@
     <ClCompile Include="BasicMaterial.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
+    <ClCompile Include="Exercise6.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -243,6 +244,7 @@
     <ClInclude Include="BasicMaterial.h">
       <Filter>Scene</Filter>
     </ClInclude>
+    <ClInclude Include="Exercise6.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">
@@ -329,6 +331,12 @@
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Exercise5PS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Exercise6VS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Exercise6PS.hlsl">
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
   </ItemGroup>

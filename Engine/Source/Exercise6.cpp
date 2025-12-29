@@ -1,5 +1,5 @@
 #include "Globals.h"
-#include "Exercise5.h"
+#include "Exercise6.h"
 
 #include "D3D12Module.h"
 #include "ResourcesModule.h"
@@ -17,40 +17,40 @@
 #include "Mesh.h"
 #include "BasicMaterial.h"
 
-Exercise5::Exercise5()
+Exercise6::Exercise6()
 {
 }
 
-Exercise5::~Exercise5()
+Exercise6::~Exercise6()
 {
 }
 
-bool Exercise5::init()
+bool Exercise6::init()
 {
     duck = std::make_unique<Model>();
 
-    if (!duck->Load("Assets/Models/Duck/", "Duck.gltf")) 
+    if (!duck->Load("Assets/Models/Duck/", "Duck.gltf"))
     {
-        Logger::Err("Exercise5: Duck Model not loaded");
+        Logger::Err("Exercise6: Duck Model not loaded");
         return false;
     }
 
     if (!createRootSignature())
     {
-        Logger::Err("Exercise 5: RootSignature Failed");
+        Logger::Err("Exercise 6: RootSignature Failed");
         return false;
     }
 
     if (!createPSO())
     {
-        Logger::Err("Exercise 5: PSO Failed");
+        Logger::Err("Exercise 6: PSO Failed");
         return false;
     }
 
     return true;
 }
 
-void Exercise5::render()
+void Exercise6::render()
 {
     // ------------------------------------------------------------
     D3D12Module* d3d12 = app->getD3D12();
@@ -105,16 +105,16 @@ void Exercise5::render()
     duck->setModelMatrix(model);
 
 
-    if (isGizmoVisible) 
+    if (isGizmoVisible)
     {
         ApplyImGuizmo(camera);
     }
-    
+
 
     mvpMatrix = (duck->getModelMatrix() * camera->getView() * camera->GetProjection(camera->getAspect())).Transpose();
 
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
-   
+
 
     // ------------------------------------------------------------
     // BIND TEXTURES
@@ -122,7 +122,7 @@ void Exercise5::render()
     ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
     SamplersModule* samplers = app->getSamplers();
 
-    ID3D12DescriptorHeap* heaps[] = 
+    ID3D12DescriptorHeap* heaps[] =
     {
         shaders->getHeap(),     // t0: texture
         samplers->getHeap()     // s0: sampler
@@ -147,7 +147,7 @@ void Exercise5::render()
     app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), camera->getView(), camera->GetProjection(camera->getAspect()));
 }
 
-bool Exercise5::createRootSignature()
+bool Exercise6::createRootSignature()
 {
     CD3DX12_ROOT_PARAMETER rootParameters[4];
     CD3DX12_DESCRIPTOR_RANGE srvRange;
@@ -215,7 +215,7 @@ bool Exercise5::createRootSignature()
     return true;
 }
 
-bool Exercise5::createPSO()
+bool Exercise6::createPSO()
 {
     // ------------------------------------------------------------
     // Input Layout: POSITION (vec3) + TEXCOORD (vec2)
@@ -228,8 +228,8 @@ bool Exercise5::createPSO()
     // ------------------------------------------------------------
     // Load compiled shaders (.cso files)
     // ------------------------------------------------------------
-    auto dataVS = DX::ReadData(L"Exercise5VS.cso");
-    auto dataPS = DX::ReadData(L"Exercise5PS.cso");
+    auto dataVS = DX::ReadData(L"Exercise6VS.cso");
+    auto dataPS = DX::ReadData(L"Exercise6PS.cso");
 
     if (dataVS.empty() || dataPS.empty()) {
         Logger::Err("ERROR: VS or PS .cso is empty — check build output and paths");
@@ -237,7 +237,7 @@ bool Exercise5::createPSO()
     }
     else
     {
-        Logger::Log("Exercise5: VS Data & PS Data: OK!");
+        Logger::Log("Exercise6: VS Data & PS Data: OK!");
     }
 
     // ------------------------------------------------------------
@@ -265,7 +265,7 @@ bool Exercise5::createPSO()
     return SUCCEEDED(app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso)));
 }
 
-void Exercise5::loadModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers)
+void Exercise6::loadModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers)
 {
     for (size_t i = 0; i < duck->getMeshCount(); ++i)
     {
@@ -299,10 +299,9 @@ void Exercise5::loadModel(ID3D12GraphicsCommandList* commandList, ShaderDescript
             commandList->DrawInstanced(mesh.getVertexCount(), 1, 0, 0);
         }
     }
-
 }
 
-void Exercise5::ExerciseMenu(CameraModule* camera)
+void Exercise6::ExerciseMenu(CameraModule* camera)
 {
     ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
@@ -440,9 +439,8 @@ void Exercise5::ExerciseMenu(CameraModule* camera)
     ImGui::End();
 }
 
-void Exercise5::ApplyImGuizmo(CameraModule* camera)
+void Exercise6::ApplyImGuizmo(CameraModule* camera)
 {
-
     ImGuizmo::BeginFrame();
     ImGuizmo::Enable(true);
 
@@ -497,11 +495,8 @@ void Exercise5::ApplyImGuizmo(CameraModule* camera)
         rotationX = XMConvertToDegrees(euler.x);  // pitch
         rotationY = XMConvertToDegrees(euler.y);  // yaw  
         rotationZ = XMConvertToDegrees(euler.z);  // roll
-  
+
     }
-
 }
-
-
 
 

@@ -13,6 +13,7 @@ class ShaderDescriptorsModule;
 class SamplersModule;
 class CameraModule;
 class ViewportModule;
+class RingBufferModule;
 
 class DebugDrawPass;
 
@@ -33,6 +34,7 @@ public:
     SamplersModule* getSamplers() { return samplers; }
     CameraModule* getCamera() { return camera; }
     ViewportModule* getViewport() { return viewport; }
+    RingBufferModule* getRingBuffer() { return ringBuffer; }
 
     DebugDrawPass* getDebugDrawPass() { return debugDrawPass.get(); }
 
@@ -60,6 +62,7 @@ private:
     SamplersModule* samplers = nullptr;
     CameraModule* camera = nullptr;
     ViewportModule* viewport = nullptr;
+    RingBufferModule* ringBuffer = nullptr;
 
     std::unique_ptr<DebugDrawPass> debugDrawPass;
 

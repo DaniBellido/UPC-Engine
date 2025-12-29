@@ -11,6 +11,7 @@
 #include "SamplersModule.h"
 #include "ExerciseModule.h"
 #include "CameraModule.h"
+#include "RingBufferModule.h"
 
 
 
@@ -25,6 +26,7 @@ Application::Application(int argc, wchar_t** argv, void* hWnd)
     modules.push_back(shaderDescriptors = new ShaderDescriptorsModule());
     modules.push_back(samplers = new SamplersModule());
     modules.push_back(camera = new CameraModule());
+    modules.push_back(ringBuffer = new RingBufferModule());
 
     // Last Module to be pushed must be the Editor Module
     modules.push_back(new EditorModule((HWND)hWnd, d3d12));

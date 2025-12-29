@@ -113,6 +113,7 @@
       <Filter>Scene</Filter>
     </ClCompile>
     <ClCompile Include="Exercise6.cpp" />
+    <ClCompile Include="RingBufferModule.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -245,6 +246,7 @@
       <Filter>Scene</Filter>
     </ClInclude>
     <ClInclude Include="Exercise6.h" />
+    <ClInclude Include="RingBufferModule.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">

@@ -34,6 +34,6 @@ void BasicMaterial::load(const tinygltf::Model& model, const tinygltf::Material&
 	}
 
 	// CBV
-	MaterialData data = { baseColour, hasColourTexture, {} };
-	materialBuffer = app->getResources()->createDefaultBuffer(&data, alignUp(sizeof(MaterialData), 256), "MaterialCBV");
+	BasicMaterialData data = { baseColour, hasColourTexture, {} };
+	materialBuffer = app->getResources()->createDefaultBuffer(&data, alignUp(sizeof(BasicMaterialData), 256), "MaterialCBV");
 }

@@ -2,12 +2,31 @@
 
 namespace tinygltf { class Model; struct Material; }
 
-struct MaterialData 
+struct BasicMaterialData 
 {
-    Vector4 baseColour;
+    XMFLOAT4 baseColour;
     BOOL hasColourTexture;  
     UINT padding[3];
 };
+
+struct PhongMaterialData
+{
+    XMFLOAT4 diffuseColour;
+    float    Kd;
+    float    Ks;
+    float    shininess;
+    BOOL     hasDiffuseTex;
+};
+
+struct PBRPhongMaterialData
+{
+    XMFLOAT3 diffuseColour;
+    BOOL     hasDiffuseTex;
+
+    XMFLOAT3 specularColour;
+    float    shininess;
+};
+
 
 class BasicMaterial
 {

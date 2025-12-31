@@ -112,8 +112,12 @@
     <ClCompile Include="BasicMaterial.cpp">
       <Filter>Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Exercise6.cpp" />
-    <ClCompile Include="RingBufferModule.cpp" />
+    <ClCompile Include="Exercise6.cpp">
+      <Filter>Exercises</Filter>
+    </ClCompile>
+    <ClCompile Include="RingBufferModule.cpp">
+      <Filter>Modules</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -245,8 +249,12 @@
     <ClInclude Include="BasicMaterial.h">
       <Filter>Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Exercise6.h" />
-    <ClInclude Include="RingBufferModule.h" />
+    <ClInclude Include="Exercise6.h">
+      <Filter>Exercises</Filter>
+    </ClInclude>
+    <ClInclude Include="RingBufferModule.h">
+      <Filter>Modules</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">

@@ -54,7 +54,7 @@ bool Model::Load(const char* folderName, const char* assetFileName)
     // Load Material
     for (const auto& mat : model.materials) {
         BasicMaterial newMat;
-        newMat.load(model, mat, folderName);  
+        newMat.load(model, mat, BasicMaterial::Type::PHONG, folderName);
         materials.push_back(newMat);
     }
 

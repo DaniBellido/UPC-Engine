@@ -2,6 +2,7 @@
 #include "EditorModule.h"
 #include "D3D12Module.h"
 #include "Application.h"
+#include "RingBufferModule.h"
 
 
 enum class ExerciseSelection
@@ -66,6 +67,9 @@ void EditorModule::preRender()
 
 	if (showPerformancePanel)
 		drawPerformancePanel();
+
+	if (showRingBufferPanel)
+		drawRingBufferPanel();
 	
 }
 
@@ -217,6 +221,7 @@ void EditorModule::drawToolbar()
 			if (ImGui::MenuItem("Show Viewport", nullptr, showViewport)) { viewport->setVisible(!showViewport); }
 			if (ImGui::MenuItem("Show Exercise List", nullptr, showExercisesWindow)) { showExercisesWindow = !showExercisesWindow; }
 			if (ImGui::MenuItem("Show Performance Panel", nullptr, showPerformancePanel)) { showPerformancePanel = !showPerformancePanel; }
+			if (ImGui::MenuItem("Show Ring Buffer Monitor", nullptr, showRingBufferPanel)) { showRingBufferPanel = !showRingBufferPanel; }
 			ImGui::EndMenu();
 		}
 
@@ -404,6 +409,75 @@ void EditorModule::drawPerformancePanel()
 
 		ImGui::Columns(1);
 	}
+
+	ImGui::End();
+}
+
+void EditorModule::drawRingBufferPanel()
+{
+	if (!showRingBufferPanel)
+		return;
+
+	ImGui::Begin("Ring Buffer Monitor", &showRingBufferPanel);
+
+	RingBufferModule* ring = app->getRingBuffer();
+
+	struct DebugData { float value[4]; };
+	DebugData data = { float(ImGui::GetFrameCount()), 0, 0, 0 };
+	void* cpuPtr = nullptr;
+	ring->allocBuffer(sizeof(DebugData), &cpuPtr);
+	memcpy(cpuPtr, &data, sizeof(DebugData));
+
+	// --- Información básica ---
+	ImGui::Text("Total Size: %zu KB", ring->getTotalSize() / 1024);
+	ImGui::Text("Total Allocated: %zu KB", ring->getTotalAllocated() / 1024);
+	ImGui::Text("Head: %zu KB", ring->getHead() / 1024);
+	ImGui::Text("Tail: %zu KB", ring->getTail() / 1024);
+	ImGui::Text("Current Frame: %u", ring->getCurrentFrame());
+
+	ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Espacio entre texto y visual
+
+	// --- Visualización circular ---
+	float circleRadius = 50.0f;
+	ImVec2 pos = ImGui::GetCursorScreenPos();
+	ImVec2 center = ImVec2(pos.x + circleRadius, pos.y + circleRadius);
+
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+	// Fondo del anillo
+	drawList->AddCircle(center, circleRadius, IM_COL32(100, 100, 100, 255), 64, 3.0f);
+
+	// Head
+	float headAngle = 2.0f * 3.14159f * float(ring->getHead()) / float(ring->getTotalSize());
+	ImVec2 headPos = ImVec2(center.x + circleRadius * cosf(headAngle - 3.14159f / 2.0f),
+		center.y + circleRadius * sinf(headAngle - 3.14159f / 2.0f));
+	drawList->AddCircleFilled(headPos, 5.0f, IM_COL32(0, 255, 0, 255));
+
+	// Tail
+	float tailAngle = 2.0f * 3.14159f * float(ring->getTail()) / float(ring->getTotalSize());
+	ImVec2 tailPos = ImVec2(center.x + circleRadius * cosf(tailAngle - 3.14159f / 2.0f),
+		center.y + circleRadius * sinf(tailAngle - 3.14159f / 2.0f));
+	drawList->AddCircleFilled(tailPos, 5.0f, IM_COL32(255, 0, 0, 255));
+
+	// Arco aproximando memoria usada
+	float usedAngle = 2.0f * 3.14159f * float(ring->getTotalAllocated()) / float(ring->getTotalSize());
+	const int segments = 64;
+	ImVec2 prev = ImVec2(center.x + circleRadius * cosf(-3.14159f / 2.0f),
+		center.y + circleRadius * sinf(-3.14159f / 2.0f));
+
+	for (int i = 1; i <= int(segments * usedAngle / (2.0f * 3.14159f)); i++)
+	{
+		float angle = -3.14159f / 2.0f + usedAngle * float(i) / float(segments * usedAngle / (2.0f * 3.14159f));
+		ImVec2 posSeg = ImVec2(center.x + circleRadius * cosf(angle),
+			center.y + circleRadius * sinf(angle));
+		drawList->AddLine(prev, posSeg, IM_COL32(0, 128, 255, 200), 3.0f);
+		prev = posSeg;
+	}
+
+	// Texto explicativo
+	ImGui::Dummy(ImVec2(0.0f, circleRadius * 2 + 5.0f)); // espacio para no solapar
+	ImGui::Text("Green = Head (next alloc)");
+	ImGui::Text("Red   = Tail (oldest free)");
 
 	ImGui::End();
 }

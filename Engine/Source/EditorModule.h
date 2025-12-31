@@ -25,6 +25,7 @@ private:
 
 	bool showExercisesWindow = true;
 	bool showPerformancePanel = true;
+	bool showRingBufferPanel = true;
 
 
 
@@ -47,5 +48,6 @@ private:
 	void drawToolbar();
 	void drawExerciseMenu();
 	void drawPerformancePanel();
+	void drawRingBufferPanel();
 };
 

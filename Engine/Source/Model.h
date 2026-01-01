@@ -17,7 +17,7 @@ public:
     Model();
     ~Model();
 
-	bool Load(const char* folderName, const char* assetFileName);
+	bool Load(const char* folderName, const char* assetFileName, BasicMaterial::Type MatType);
 
     const std::vector<Mesh>& getMeshes()   const { return meshes; }
     const std::vector<BasicMaterial>& getMaterials() const { return materials; }

@@ -29,7 +29,7 @@ bool Exercise5::init()
 {
     duck = std::make_unique<Model>();
 
-    if (!duck->Load("Assets/Models/Duck/", "Duck.gltf")) 
+    if (!duck->Load("Assets/Models/Duck/", "Duck.gltf", BasicMaterial::Type::BASIC))
     {
         Logger::Err("Exercise5: Duck Model not loaded");
         return false;

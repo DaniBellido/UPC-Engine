@@ -8,9 +8,29 @@ class CameraModule;
 class ShaderDescriptorsModule;
 class SamplersModule;
 
+
 class Exercise6 : public Module
 {
 private:
+
+	struct PerInstance
+	{
+		SimpleMath::Matrix modelMat;
+		SimpleMath::Matrix normalMat;
+		PhongMaterialData  material;
+	};
+
+	struct PerFrame
+	{
+		SimpleMath::Vector3 L;
+		float pad0;
+		SimpleMath::Vector3 Lc;
+		float pad1;
+		SimpleMath::Vector3 Ac;
+		float pad2;
+		SimpleMath::Vector3 viewPos;
+		float pad3;
+	};
 
 	ComPtr<ID3D12RootSignature> rootSignature;
 	ComPtr<ID3D12PipelineState> pso;
@@ -41,6 +61,16 @@ private:
 	bool isGizmoVisible = true;
 
 	ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
+
+	// ---- Lighting (PerFrame) ----
+	SimpleMath::Vector3 lightDir = SimpleMath::Vector3(0.5f, -1.0f, 0.5f);
+	SimpleMath::Vector3 lightColor = SimpleMath::Vector3(1.0f, 1.0f, 1.0f);
+	SimpleMath::Vector3 ambient = SimpleMath::Vector3(0.25f, 0.25f, 0.25f);
+
+	// ---- Phong material overrides (PerInstance) ----
+	float phongKd = 1.0f;
+	float phongKs = 0.4f;
+	float phongShininess = 32.0f;
 
 	bool createRootSignature();
 	bool createPSO();

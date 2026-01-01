@@ -19,7 +19,7 @@ Model::~Model()
 {
 }
 
-bool Model::Load(const char* folderName, const char* assetFileName)
+bool Model::Load(const char* folderName, const char* assetFileName, BasicMaterial::Type MatType)
 {
     std::string fullPath = std::string(folderName) + "/" + assetFileName;
 
@@ -54,7 +54,7 @@ bool Model::Load(const char* folderName, const char* assetFileName)
     // Load Material
     for (const auto& mat : model.materials) {
         BasicMaterial newMat;
-        newMat.load(model, mat, BasicMaterial::Type::PHONG, folderName);
+        newMat.load(model, mat, MatType, folderName);
         materials.push_back(newMat);
     }
 

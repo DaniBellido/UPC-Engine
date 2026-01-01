@@ -422,29 +422,31 @@ void EditorModule::drawRingBufferPanel()
 
 	RingBufferModule* ring = app->getRingBuffer();
 
+	// ***** Block for testing purposes **************************
 	struct DebugData { float value[4]; };
 	DebugData data = { float(ImGui::GetFrameCount()), 0, 0, 0 };
 	void* cpuPtr = nullptr;
 	ring->allocBuffer(sizeof(DebugData), &cpuPtr);
 	memcpy(cpuPtr, &data, sizeof(DebugData));
+	// *********** REMOVE ****************************************
 
-	// --- Información básica ---
+	// Basic info
 	ImGui::Text("Total Size: %zu KB", ring->getTotalSize() / 1024);
 	ImGui::Text("Total Allocated: %zu KB", ring->getTotalAllocated() / 1024);
 	ImGui::Text("Head: %zu KB", ring->getHead() / 1024);
 	ImGui::Text("Tail: %zu KB", ring->getTail() / 1024);
 	ImGui::Text("Current Frame: %u", ring->getCurrentFrame());
 
-	ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Espacio entre texto y visual
+	ImGui::Dummy(ImVec2(0.0f, 10.0f)); // Space between text and visuals
 
-	// --- Visualización circular ---
+	// Visual ring
 	float circleRadius = 50.0f;
 	ImVec2 pos = ImGui::GetCursorScreenPos();
 	ImVec2 center = ImVec2(pos.x + circleRadius, pos.y + circleRadius);
 
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-	// Fondo del anillo
+	// Ring background
 	drawList->AddCircle(center, circleRadius, IM_COL32(100, 100, 100, 255), 64, 3.0f);
 
 	// Head
@@ -459,7 +461,7 @@ void EditorModule::drawRingBufferPanel()
 		center.y + circleRadius * sinf(tailAngle - 3.14159f / 2.0f));
 	drawList->AddCircleFilled(tailPos, 5.0f, IM_COL32(255, 0, 0, 255));
 
-	// Arco aproximando memoria usada
+	// Arch aprox. used memory
 	float usedAngle = 2.0f * 3.14159f * float(ring->getTotalAllocated()) / float(ring->getTotalSize());
 	const int segments = 64;
 	ImVec2 prev = ImVec2(center.x + circleRadius * cosf(-3.14159f / 2.0f),
@@ -474,8 +476,8 @@ void EditorModule::drawRingBufferPanel()
 		prev = posSeg;
 	}
 
-	// Texto explicativo
-	ImGui::Dummy(ImVec2(0.0f, circleRadius * 2 + 5.0f)); // espacio para no solapar
+	// Hints
+	ImGui::Dummy(ImVec2(0.0f, circleRadius * 2 + 5.0f)); 
 	ImGui::Text("Green = Head (next alloc)");
 	ImGui::Text("Red   = Tail (oldest free)");
 

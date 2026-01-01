@@ -30,7 +30,7 @@ bool Exercise6::init()
 {
     duck = std::make_unique<Model>();
 
-    if (!duck->Load("Assets/Models/Duck/", "Duck.gltf"))
+    if (!duck->Load("Assets/Models/Duck/", "Duck.gltf", BasicMaterial::Type::PHONG))
     {
         Logger::Err("Exercise6: Duck Model not loaded");
         return false;
@@ -87,6 +87,23 @@ void Exercise6::render()
     // ------------------------------------------------------------
     commandList->SetGraphicsRootSignature(rootSignature.Get()); // The root signature defines how resources are passed to shaders
     commandList->SetPipelineState(pso.Get());                   // The PSO (Pipeline State Object) contains shaders, input layout, blend state, rasterizer state, etc.
+
+    // ------------------------------------------------------------
+    // PerFrame constant buffer (Phong lighting)
+    // ------------------------------------------------------------
+    RingBufferModule* ring = app->getRingBuffer();
+
+    PerFrame* perFrame = nullptr;
+    auto perFrameGPU = ring->allocBuffer(sizeof(PerFrame), (void**)&perFrame);
+
+    // Valores de prueba (hardcodeados primero)
+    perFrame->L = lightDir;   // Dirección de la luz
+    perFrame->Lc = lightColor;   // Color de la luz
+    perFrame->Ac = ambient;   // Ambient
+    perFrame->viewPos = camera->getPos();                  // Cámara
+
+    // Bind PerFrame CBV -> slot 2 (b2)
+    commandList->SetGraphicsRootConstantBufferView(2, perFrameGPU);
 
     // ------------------------------------------------------------
     // Configure the Input Assembler
@@ -150,7 +167,7 @@ void Exercise6::render()
 
 bool Exercise6::createRootSignature()
 {
-    CD3DX12_ROOT_PARAMETER rootParameters[4];
+    CD3DX12_ROOT_PARAMETER rootParameters[5];
     CD3DX12_DESCRIPTOR_RANGE srvRange;
     CD3DX12_DESCRIPTOR_RANGE sampRange;
 
@@ -160,21 +177,26 @@ bool Exercise6::createRootSignature()
     rootParameters[0].InitAsConstants(16, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 
     // ------------------------------------------------------------
-    // [1] Materials CBV  (PS)
+    // [1] PerInstance CBV (b1) - VS + PS
     // ------------------------------------------------------------
-    rootParameters[1].InitAsConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL); 
 
     // ------------------------------------------------------------
-    // [2] SRV texture table (PS)
+    // [2] PerFrame CBV (b2) - PS
+    // ------------------------------------------------------------
+    rootParameters[2].InitAsConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+
+    // ------------------------------------------------------------
+    // [3]  SRV texture table (t0) - PS
     // ------------------------------------------------------------
     srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-    rootParameters[2].InitAsDescriptorTable(1, &srvRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[3].InitAsDescriptorTable(1, &srvRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
     // ------------------------------------------------------------
-    // [3] Sampler Table (PS)
+    // [4] Sampler Table (s0) - PS
     // ------------------------------------------------------------
     sampRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
-    rootParameters[3].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[4].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
     // ------------------------------------------------------------
     // Create and serialize root signature
@@ -269,6 +291,8 @@ bool Exercise6::createPSO()
 
 void Exercise6::loadModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers)
 {
+    RingBufferModule* ring = app->getRingBuffer();
+
     for (size_t i = 0; i < duck->getMeshCount(); ++i)
     {
         const Mesh& mesh = duck->getMesh(i);
@@ -277,17 +301,36 @@ void Exercise6::loadModel(ID3D12GraphicsCommandList* commandList, ShaderDescript
         const auto& vbv = mesh.getVertexView();
         commandList->IASetVertexBuffers(0, 1, &vbv);
 
-        // Material
+        // Material data
         const BasicMaterial& mat = duck->getMaterialForMesh(i);
-        commandList->SetGraphicsRootConstantBufferView(1, mat.getMaterialBufferGPU());
 
-        // Texture
+        // PerInstance constant buffer (Phong)
+        PerInstance* perInstance = nullptr;
+        auto perInstanceGPU = ring->allocBuffer(sizeof(PerInstance), (void**)&perInstance);
+
+        // Model + normal matrices
+        perInstance->modelMat = duck->getModelMatrix().Transpose();
+        perInstance->normalMat = duck->getModelMatrix().Invert().Transpose();
+
+        // Copy Phong material data
+        perInstance->material = mat.getPhongMaterial();
+
+        // Override Phong parameters from ImGui
+        perInstance->material.Kd = phongKd;
+        perInstance->material.Ks = phongKs;
+        perInstance->material.shininess = phongShininess;
+
+        // Bind PerInstance CBV -> slot 1 (b1)
+        commandList->SetGraphicsRootConstantBufferView(1, perInstanceGPU);
+
+
+        // Texture (t0)
         D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(mat.getColourTexSRV());
-        commandList->SetGraphicsRootDescriptorTable(2, texHandle);
+        commandList->SetGraphicsRootDescriptorTable(3, texHandle);
 
-        // Sampler slot 3
+        // Sampler (s0)
         D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle(0);
-        commandList->SetGraphicsRootDescriptorTable(3, sampHandle);
+        commandList->SetGraphicsRootDescriptorTable(4, sampHandle);
 
         // Draw
         if (mesh.hasIndices())
@@ -363,6 +406,23 @@ void Exercise6::ExerciseMenu(CameraModule* camera)
         if (ImGui::RadioButton("Scale [C]", currentOperation == ImGuizmo::SCALE) || ImGui::IsKeyPressed(ImGuiKey_C))
             currentOperation = ImGuizmo::SCALE;
 
+    }
+
+    if (ImGui::CollapsingHeader("Phong Material", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::SliderFloat("Kd (Diffuse)", &phongKd, 0.0f, 2.0f);
+        ImGui::SliderFloat("Ks (Specular)", &phongKs, 0.0f, 1.0f);
+        ImGui::SliderFloat("Shininess", &phongShininess, 1.0f, 128.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Text("Direction");
+        ImGui::DragFloat3("Light Dir", &lightDir.x, 0.01f, -1.0f, 1.0f);
+        lightDir.Normalize();
+
+        ImGui::ColorEdit3("Light Color", &lightColor.x);
+        ImGui::ColorEdit3("Ambient", &ambient.x);
     }
 
     if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))

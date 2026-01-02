@@ -64,7 +64,7 @@ public:
     size_t getHead() const { return head; }
     size_t getTail() const { return tail; }
     size_t getTotalAllocated() const { return totalAllocated; }
-    size_t getAllocatedInFrame(int i) const { return allocatedInFrame[i]; }
+    size_t getAllocatedInFrame() const { return allocatedInFrame[currentFrame]; }
     unsigned getCurrentFrame() const { return currentFrame; }
 };
 

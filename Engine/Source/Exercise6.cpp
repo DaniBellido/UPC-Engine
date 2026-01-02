@@ -54,9 +54,12 @@ bool Exercise6::init()
 void Exercise6::render()
 {
     // ------------------------------------------------------------
+    // Frame context
+    // ------------------------------------------------------------
     D3D12Module* d3d12 = app->getD3D12();
     ID3D12GraphicsCommandList* commandList = d3d12->getCommandList();
     CameraModule* camera = app->getCamera();
+    RingBufferModule* ring = app->getRingBuffer();
 
     // ----------------------------------------------------------------
     // ImGui Window
@@ -66,15 +69,19 @@ void Exercise6::render()
     // ------------------------------------------------------------
     // Set viewport and scissor rect
     // ------------------------------------------------------------
-    D3D12_VIEWPORT viewport{ 0.0f, 0.0f, float(d3d12->getWindowWidth()), float(d3d12->getWindowHeight()), 0.0f, 1.0f };  // The viewport defines the area of the screen where pixels are drawn
+    const float width = float(d3d12->getWindowWidth());
+    const float height = float(d3d12->getWindowHeight());
+
+    D3D12_VIEWPORT viewport{ 0.0f, 0.0f, width, height, 0.0f, 1.0f };                           // The viewport defines the area of the screen where pixels are drawn
     D3D12_RECT scissor{ 0, 0, LONG(d3d12->getWindowWidth()), LONG(d3d12->getWindowHeight()) };
-    commandList->RSSetViewports(1, &viewport);                  // Assign viewport and scissor to the rasterizer stage
+
+    commandList->RSSetViewports(1, &viewport);                                                  // Assign viewport and scissor to the rasterizer stage
     commandList->RSSetScissorRects(1, &scissor);
 
     // ------------------------------------------------------------
     // Clearing RTV & DSV
     // ------------------------------------------------------------
-    float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+    const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
     D3D12_CPU_DESCRIPTOR_HANDLE rtv = d3d12->getRenderTargetDescriptor();
     D3D12_CPU_DESCRIPTOR_HANDLE dsv = d3d12->getDepthStencilDescriptor();
 
@@ -83,56 +90,11 @@ void Exercise6::render()
     commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
     // ------------------------------------------------------------
-    // Set up the graphics pipeline
+    // Pipeline state
     // ------------------------------------------------------------
     commandList->SetGraphicsRootSignature(rootSignature.Get()); // The root signature defines how resources are passed to shaders
     commandList->SetPipelineState(pso.Get());                   // The PSO (Pipeline State Object) contains shaders, input layout, blend state, rasterizer state, etc.
-
-    // ------------------------------------------------------------
-    // PerFrame constant buffer (Phong lighting)
-    // ------------------------------------------------------------
-    RingBufferModule* ring = app->getRingBuffer();
-
-    PerFrame* perFrame = nullptr;
-    auto perFrameGPU = ring->allocBuffer(sizeof(PerFrame), (void**)&perFrame);
-
-    // Valores de prueba (hardcodeados primero)
-    perFrame->L = lightDir;   // Dirección de la luz
-    perFrame->Lc = lightColor;   // Color de la luz
-    perFrame->Ac = ambient;   // Ambient
-    perFrame->viewPos = camera->getPos();                  // Cámara
-
-    // Bind PerFrame CBV -> slot 2 (b2)
-    commandList->SetGraphicsRootConstantBufferView(2, perFrameGPU);
-
-    // ------------------------------------------------------------
-    // Configure the Input Assembler
-    // ------------------------------------------------------------
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set primitive type (triangles)
-
-
-    // ----------------------------------------------------------------
-    // Model-View-Projection Matrix Pipeline
-    // ----------------------------------------------------------------
-
-    SimpleMath::Matrix model =
-        SimpleMath::Matrix::CreateScale(scaleX, scaleY, scaleZ) *
-        SimpleMath::Matrix::CreateFromQuaternion(qRot) *
-        SimpleMath::Matrix::CreateTranslation(positionX, positionY, positionZ);
-
-    duck->setModelMatrix(model);
-
-
-    if (isGizmoVisible)
-    {
-        ApplyImGuizmo(camera);
-    }
-
-
-    mvpMatrix = (duck->getModelMatrix() * camera->getView() * camera->GetProjection(camera->getAspect())).Transpose();
-
-    commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
-
 
     // ------------------------------------------------------------
     // BIND TEXTURES
@@ -147,21 +109,67 @@ void Exercise6::render()
     };
     commandList->SetDescriptorHeaps(2, heaps);  // 2 heaps
 
+    // ------------------------------------------------------------
+    // PerFrame constant buffer (Phong lighting)
+    // ------------------------------------------------------------
+    PerFrame* perFrame = nullptr;
+    auto perFrameGPU = ring->allocBuffer(sizeof(PerFrame), (void**)&perFrame);
+
+    perFrame->L = lightDir;
+    perFrame->Lc = lightColor;
+    perFrame->Ac = ambient;
+    perFrame->viewPos = camera->getPos();
+
+    commandList->SetGraphicsRootConstantBufferView(2, perFrameGPU); // Bind PerFrame CBV -> slot 2 (b2)
+
+    // ----------------------------------------------------------------
+    // Model-View-Projection Matrix Pipeline
+    // ----------------------------------------------------------------
+    SimpleMath::Matrix model =
+        SimpleMath::Matrix::CreateScale(scaleX, scaleY, scaleZ) *
+        SimpleMath::Matrix::CreateFromQuaternion(qRot) *
+        SimpleMath::Matrix::CreateTranslation(positionX, positionY, positionZ);
+
+    duck->setModelMatrix(model);
+
+    if (isGizmoVisible)
+        ApplyImGuizmo(camera);
+
+    mvpMatrix = (duck->getModelMatrix() * camera->getView() * camera->GetProjection(camera->getAspect())).Transpose();
+
+    commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
 
     // ------------------------------------------------------------
     // GRID & AXIS
     // ------------------------------------------------------------
     if (isGridVisible) { dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray); }
     if (isAxisVisible) { dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f); }
+    if (isLightGizmoVisible)
+    {
+        // Choose a reference position (origin is fine)
+        SimpleMath::Vector3 origin(0.0f, 0.0f, 0.0f);
+
+        // Directional light points *from* light *towards* the scene
+        SimpleMath::Vector3 dir = -lightDir;
+        dir.Normalize();
+
+        float length = 2.5f;
+        SimpleMath::Vector3 end = origin + dir * length;
+
+        dd::arrow(ddConvert(origin),ddConvert(end),dd::colors::Yellow,0.05f);
+    }
 
     // ------------------------------------------------------------
-    // Draw Duck meshes
+    // Geometry
     // ------------------------------------------------------------
     if (isGeoVisible)
     {
-        loadModel(commandList, shaders, samplers);
+        drawModel(commandList, shaders, samplers);
     }
 
+    // ------------------------------------------------------------
+    // Debug pass (last)
+    // ------------------------------------------------------------
     app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), camera->getView(), camera->GetProjection(camera->getAspect()));
 }
 
@@ -290,54 +298,66 @@ bool Exercise6::createPSO()
     return SUCCEEDED(app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso)));
 }
 
-void Exercise6::loadModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers)
+void Exercise6::drawModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers)
 {
     RingBufferModule* ring = app->getRingBuffer();
 
+    const SimpleMath::Matrix modelMat = duck->getModelMatrix();
+    const SimpleMath::Matrix normalMat = modelMat.Invert().Transpose();
+
     for (size_t i = 0; i < duck->getMeshCount(); ++i)
     {
+        // ------------------------------------------------------------
+        // Mesh geometry
+        // ------------------------------------------------------------
         const Mesh& mesh = duck->getMesh(i);
 
         // Vertex buffer
-        const auto& vbv = mesh.getVertexView();
+        const D3D12_VERTEX_BUFFER_VIEW& vbv = mesh.getVertexView();
         commandList->IASetVertexBuffers(0, 1, &vbv);
+
+        if (mesh.hasIndices())
+        {
+            const D3D12_INDEX_BUFFER_VIEW& ibv = mesh.getIndexView();
+            commandList->IASetIndexBuffer(&ibv);
+        }
+
+        // ------------------------------------------------------------
+        // Per-instance constants (transform + phong material)
+        // ------------------------------------------------------------
+        PerInstance* perInstance = nullptr;
+        auto perInstanceGPU = ring->allocBuffer(sizeof(PerInstance), (void**)&perInstance);
+        perInstance->modelMat = duck->getModelMatrix().Transpose();
+        perInstance->normalMat = duck->getModelMatrix().Invert().Transpose();
 
         // Material data
         const BasicMaterial& mat = duck->getMaterialForMesh(i);
 
-        // PerInstance constant buffer (Phong)
-        PerInstance* perInstance = nullptr;
-        auto perInstanceGPU = ring->allocBuffer(sizeof(PerInstance), (void**)&perInstance);
-
-        // Model + normal matrices
-        perInstance->modelMat = duck->getModelMatrix().Transpose();
-        perInstance->normalMat = duck->getModelMatrix().Invert().Transpose();
-
-        // Copy Phong material data
         perInstance->material = mat.getPhongMaterial();
-
-        // Override Phong parameters from ImGui
+        
+        // ImGui overrides (runtime tweaking)
+        perInstance->material.diffuseColour = phongDiffuseColor;
+        perInstance->material.hasDiffuseTex = isTextureVisible && mat.getPhongMaterial().hasDiffuseTex;
         perInstance->material.Kd = phongKd;
         perInstance->material.Ks = phongKs;
         perInstance->material.shininess = phongShininess;
 
-        // Bind PerInstance CBV -> slot 1 (b1)
-        commandList->SetGraphicsRootConstantBufferView(1, perInstanceGPU);
+        commandList->SetGraphicsRootConstantBufferView(1, perInstanceGPU); // Bind PerInstance CBV -> slot 1 (b1)
 
-
-        // Texture (t0)
-        D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(mat.getColourTexSRV());
+        // ------------------------------------------------------------
+        // Material resources (texture + sampler)
+        // ------------------------------------------------------------
+        D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(mat.getColourTexSRV()); // Texture (t0)
         commandList->SetGraphicsRootDescriptorTable(3, texHandle);
 
-        // Sampler (s0)
-        D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle(0);
+        D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle(0);  // Sampler (s0)
         commandList->SetGraphicsRootDescriptorTable(4, sampHandle);
 
+        // ------------------------------------------------------------
         // Draw
-        if (mesh.hasIndices())
+        // ------------------------------------------------------------
+        if (mesh.hasIndices()) 
         {
-            const auto& ibv = mesh.getIndexView();
-            commandList->IASetIndexBuffer(&ibv);
             commandList->DrawIndexedInstanced(mesh.getIndexCount(), 1, 0, 0, 0);
         }
         else
@@ -411,13 +431,27 @@ void Exercise6::ExerciseMenu(CameraModule* camera)
 
     if (ImGui::CollapsingHeader("Phong Material", ImGuiTreeNodeFlags_DefaultOpen))
     {
+        static int presetIndex = 0;
+        const char* presets[] = { "Custom", "Matte", "Plastic", "Metal", "Rubber" };
+
+        if (ImGui::Combo("Material Preset", &presetIndex, presets, IM_ARRAYSIZE(presets)))
+        {
+            applyMaterialPreset(static_cast<MaterialPreset>(presetIndex));
+        }
+
         ImGui::SliderFloat("Kd (Diffuse)", &phongKd, 0.0f, 2.0f);
         ImGui::SliderFloat("Ks (Specular)", &phongKs, 0.0f, 1.0f);
         ImGui::SliderFloat("Shininess", &phongShininess, 1.0f, 128.0f);
+
+        ImGui::ColorEdit4("Diffuse Color", &phongDiffuseColor.x);
+
+        ImGui::Checkbox("Use Texture", &isTextureVisible);
     }
 
     if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen))
     {
+        ImGui::Checkbox("Show Light Direction", &isLightGizmoVisible);
+
         ImGui::Text("Direction");
         ImGui::DragFloat3("Light Dir", &lightDir.x, 0.01f, -1.0f, 1.0f);
         lightDir.Normalize();
@@ -466,7 +500,7 @@ void Exercise6::ExerciseMenu(CameraModule* camera)
         }
     }
 
-    if (ImGui::CollapsingHeader("Dsiplay", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen))
     {
         ImGui::Checkbox("Show grid    ", &isGridVisible);
         ImGui::SameLine();
@@ -559,6 +593,47 @@ void Exercise6::ApplyImGuizmo(CameraModule* camera)
         rotationY = XMConvertToDegrees(euler.y);  // yaw  
         rotationZ = XMConvertToDegrees(euler.z);  // roll
 
+    }
+}
+
+void Exercise6::applyMaterialPreset(MaterialPreset preset)
+{
+    currentPreset = preset;
+
+    switch (preset)
+    {
+    case MaterialPreset::Matte:
+        phongDiffuseColor = { 0.8f, 0.8f, 0.8f, 1.0f };
+        phongKd = 1.0f;
+        phongKs = 0.0f;
+        phongShininess = 1.0f;
+        break;
+
+    case MaterialPreset::Plastic:
+        phongDiffuseColor = { 0.9f, 0.9f, 0.9f, 1.0f };
+        phongKd = 1.0f;
+        phongKs = 0.4f;
+        phongShininess = 32.0f;
+        break;
+
+    case MaterialPreset::Metal:
+        phongDiffuseColor = { 1.0f, 0.92f, 0.67f, 1.0f }; 
+        phongKd = 0.9f;
+        phongKs = 1.0f;
+        phongShininess = 11.0f;
+        break;
+
+    case MaterialPreset::Rubber:
+        phongDiffuseColor = { 0.28f, 0.28f, 0.28f, 1.0f };
+        phongKd = 0.9f;
+        phongKs = 0.05f;
+        phongShininess = 8.0f;
+        break;
+
+    case MaterialPreset::Custom:
+    default:
+        // Do nothing: user controls values manually
+        break;
     }
 }
 

@@ -37,42 +37,30 @@ void BasicMaterial::load(const tinygltf::Model& model, const tinygltf::Material&
 
     switch (materialType)
     {
-    case Type::BASIC:
-    {
-        materialData.basic = { baseColour, hasColourTexture, {0,0,0} };
-        materialBuffer = app->getResources()->createDefaultBuffer(&materialData.basic,
-            sizeof(BasicMaterialData),
-            "MaterialCBV");
-        materialBufferGPU = getMaterialBuffer()->GetGPUVirtualAddress();
-        break;
+        case Type::BASIC:
+        {
+            materialData.basic = { baseColour, hasColourTexture, {0,0,0} };
+            materialBuffer = app->getResources()->createDefaultBuffer(&materialData.basic, sizeof(BasicMaterialData),"MaterialCBV");
+            materialBufferGPU = getMaterialBuffer()->GetGPUVirtualAddress();
+            break;
     }
-    case Type::PHONG:
-    {
-        materialData.phong.diffuseColour = baseColour;
-        materialData.phong.Kd = 1.0f;
-        materialData.phong.Ks = 0.5f;
-        materialData.phong.shininess = 32.0f;
-        materialData.phong.hasDiffuseTex = hasColourTexture;
-
-        void* cpuPtr = nullptr;
-        materialBufferGPU = app->getRingBuffer()->allocBuffer(sizeof(PhongMaterialData), &cpuPtr);
-        memcpy(cpuPtr, &materialData.phong, sizeof(PhongMaterialData));
-        materialBuffer.Reset();
-        break;
-    }
-    case Type::PBR_PHONG:
-    {
-        materialData.pbrPhong.diffuseColour = XMFLOAT3(baseColour.x, baseColour.y, baseColour.z);
-        materialData.pbrPhong.specularColour = XMFLOAT3(0.5f, 0.5f, 0.5f);
-        materialData.pbrPhong.shininess = 32.0f;
-        materialData.pbrPhong.hasDiffuseTex = hasColourTexture;
-
-        void* cpuPtr = nullptr;
-        materialBufferGPU = app->getRingBuffer()->allocBuffer(sizeof(PBRPhongMaterialData), &cpuPtr);
-        memcpy(cpuPtr, &materialData.pbrPhong, sizeof(PBRPhongMaterialData));
-        materialBuffer.Reset();
-        break;
-    }
+        case Type::PHONG:
+        {
+            materialData.phong.diffuseColour = baseColour;
+            materialData.phong.Kd = 1.0f;
+            materialData.phong.Ks = 0.5f;
+            materialData.phong.shininess = 32.0f;
+            materialData.phong.hasDiffuseTex = hasColourTexture;
+            break;
+        }
+        case Type::PBR_PHONG:
+        {
+            materialData.pbrPhong.diffuseColour = XMFLOAT3(baseColour.x, baseColour.y, baseColour.z);
+            materialData.pbrPhong.specularColour = XMFLOAT3(0.5f, 0.5f, 0.5f);
+            materialData.pbrPhong.shininess = 32.0f;
+            materialData.pbrPhong.hasDiffuseTex = hasColourTexture;
+            break;
+        }
 
     }
 }

@@ -27,6 +27,8 @@ void Mesh::load(const tinygltf::Model& model, const tinygltf::Mesh& gltfMesh, co
 		// Load the position accessor data into the vertex's position field
 		loadAccessorData(vertexData + offsetof(Vertex, position), sizeof(Vector3), sizeof(Vertex), numVertices, model, itPos->second);
 
+		loadAccessorData(vertexData + offsetof(Vertex, normal), sizeof(Vector3), sizeof(Vertex), numVertices, model, primitive.attributes, "NORMAL");
+
 		// Load the texture coordinate data if it exists
 		loadAccessorData(vertexData + offsetof(Vertex, texCoord0), sizeof(Vector2), sizeof(Vertex), numVertices, model, primitive.attributes, "TEXCOORD_0");
 

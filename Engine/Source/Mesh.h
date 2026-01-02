@@ -5,6 +5,7 @@ namespace tinygltf { class Model;  struct Mesh; struct Primitive; }
 struct Vertex
 {
     Vector3 position;
+    Vector3 normal;
     Vector2 texCoord0;
 };
 

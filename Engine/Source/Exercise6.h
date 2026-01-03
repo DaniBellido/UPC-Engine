@@ -40,6 +40,8 @@ private:
 	// ------------------------------------------------------------------------
 	ComPtr<ID3D12RootSignature> rootSignature;
 	ComPtr<ID3D12PipelineState> pso;
+	ComPtr<ID3D12PipelineState> psoWireframe;
+	ComPtr<ID3D12PipelineState> psoNormals;
 
 	// ------------------------------------------------------------------------
 	// Scene
@@ -87,6 +89,9 @@ private:
 	bool isGizmoVisible = true;
 	bool isTextureVisible = true;
 	bool isLightGizmoVisible = true;
+	bool isWireframe = false;
+	bool isWireframeOverlay = false;
+	bool isNormalsVisible = false;
 
 	ImGuizmo::OPERATION currentOperation = ImGuizmo::TRANSLATE;
 

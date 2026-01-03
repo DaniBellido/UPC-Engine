@@ -349,5 +349,11 @@
     <FxCompile Include="Exercise6PS.hlsl">
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="WireframePS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="NormalsPS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

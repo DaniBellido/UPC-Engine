@@ -18,7 +18,7 @@ class CameraModule : public Module
 	float aspect;
 
 	float fov = XM_PIDIV4;
-	float nearPlane = 0.1f;
+	float nearPlane = 1.0f;
 	float farPlane = 100.0f;
 
 public:

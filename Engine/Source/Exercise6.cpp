@@ -93,7 +93,6 @@ void Exercise6::render()
     // Pipeline state
     // ------------------------------------------------------------
     commandList->SetGraphicsRootSignature(rootSignature.Get()); // The root signature defines how resources are passed to shaders
-    commandList->SetPipelineState(pso.Get());                   // The PSO (Pipeline State Object) contains shaders, input layout, blend state, rasterizer state, etc.
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set primitive type (triangles)
 
     // ------------------------------------------------------------
@@ -160,11 +159,31 @@ void Exercise6::render()
     }
 
     // ------------------------------------------------------------
-    // Geometry
+    // Draw geometry 
     // ------------------------------------------------------------
     if (isGeoVisible)
     {
-        drawModel(commandList, shaders, samplers);
+        // ---------- Base pass ----------
+        if (!isWireframe)
+        {
+            if (isNormalsVisible)
+            {
+                commandList->SetPipelineState(psoNormals.Get());
+                drawModel(commandList, shaders, samplers);
+            }
+            else
+            {
+                commandList->SetPipelineState(pso.Get());
+                drawModel(commandList, shaders, samplers);
+            }
+        }
+
+        // ---------- Wireframe pass ----------
+        if (isWireframe || isWireframeOverlay)
+        {
+            commandList->SetPipelineState(psoWireframe.Get());
+            drawModel(commandList, shaders, samplers);
+        }
     }
 
     // ------------------------------------------------------------
@@ -263,6 +282,7 @@ bool Exercise6::createPSO()
     // ------------------------------------------------------------
     auto dataVS = DX::ReadData(L"Exercise6VS.cso");
     auto dataPS = DX::ReadData(L"Exercise6PS.cso");
+   
 
     if (dataVS.empty() || dataPS.empty()) {
         Logger::Err("ERROR: VS or PS .cso is empty — check build output and paths");
@@ -293,9 +313,61 @@ bool Exercise6::createPSO()
     psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 
     // ------------------------------------------------------------
-    // Create Pipeline State Object
+    // Create Solid PSO
     // ------------------------------------------------------------
-    return SUCCEEDED(app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso)));
+    HRESULT hr = app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso));
+
+    if (FAILED(hr))
+    {
+        Logger::Err("Failed to create solid PSO");
+        return false;
+    }
+
+    // ------------------------------------------------------------
+    // Create WIREFRAME PSO (overlay-ready)
+    // ------------------------------------------------------------
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC wireDesc = psoDesc;
+
+    auto wireframePS = DX::ReadData(L"WireframePS.cso");
+
+    wireDesc.PS = { wireframePS.data(), wireframePS.size() };
+
+    wireDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+    wireDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+
+    wireDesc.RasterizerState.DepthBias = 500;
+    wireDesc.RasterizerState.SlopeScaledDepthBias = -4.0f;
+    wireDesc.RasterizerState.DepthBiasClamp = 0.0f;
+
+    wireDesc.DepthStencilState.DepthWriteMask =
+        D3D12_DEPTH_WRITE_MASK_ZERO;
+
+    hr = app->getD3D12()->getDevice()->CreateGraphicsPipelineState(
+        &wireDesc, IID_PPV_ARGS(&psoWireframe));
+
+    if (FAILED(hr))
+    {
+        Logger::Err("Exercise6: Failed to create wireframe PSO");
+        return false;
+    }
+
+    // ------------------------------------------------------------
+    // Create NORMALS PSO
+    // ------------------------------------------------------------
+    auto dataNormalsPS = DX::ReadData(L"NormalsPS.cso");
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC normalsDesc = psoDesc;
+    normalsDesc.PS = { dataNormalsPS.data(), dataNormalsPS.size() };
+
+    HRESULT _hr = app->getD3D12()->getDevice()->CreateGraphicsPipelineState(&normalsDesc, IID_PPV_ARGS(&psoNormals));
+
+    if (FAILED(_hr))
+    {
+        Logger::Err("Failed to create normals PSO");
+        return false;
+    }
+
+    return true;
 }
 
 void Exercise6::drawModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers)
@@ -371,7 +443,7 @@ void Exercise6::ExerciseMenu(CameraModule* camera)
 {
     ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
-    if (ImGui::CollapsingHeader("Model", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("Model Transform", ImGuiTreeNodeFlags_DefaultOpen))
     {
         // Position
         ImGui::Text("Position");
@@ -427,6 +499,13 @@ void Exercise6::ExerciseMenu(CameraModule* camera)
         if (ImGui::RadioButton("Scale [C]", currentOperation == ImGuizmo::SCALE) || ImGui::IsKeyPressed(ImGuiKey_C))
             currentOperation = ImGuizmo::SCALE;
 
+        ImGui::Separator();
+
+        ImGui::Checkbox("Show gizmo", &isGizmoVisible);
+        ImGui::SameLine();
+        ImGui::Checkbox("Show model", &isGeoVisible);
+        
+
     }
 
     if (ImGui::CollapsingHeader("Phong Material", ImGuiTreeNodeFlags_DefaultOpen))
@@ -434,33 +513,85 @@ void Exercise6::ExerciseMenu(CameraModule* camera)
         static int presetIndex = 0;
         const char* presets[] = { "Custom", "Matte", "Plastic", "Metal", "Rubber" };
 
-        if (ImGui::Combo("Material Preset", &presetIndex, presets, IM_ARRAYSIZE(presets)))
+        ImGui::Text("Material Preset");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        if (ImGui::Combo("##MatPre", &presetIndex, presets, IM_ARRAYSIZE(presets)))
         {
             applyMaterialPreset(static_cast<MaterialPreset>(presetIndex));
         }
 
-        ImGui::SliderFloat("Kd (Diffuse)", &phongKd, 0.0f, 2.0f);
-        ImGui::SliderFloat("Ks (Specular)", &phongKs, 0.0f, 1.0f);
-        ImGui::SliderFloat("Shininess", &phongShininess, 1.0f, 128.0f);
+        ImGui::Text("Diffuse (Kd)");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat("##KdDiff", &phongKd, 0.0f, 2.0f);
 
-        ImGui::ColorEdit4("Diffuse Color", &phongDiffuseColor.x);
+        ImGui::Text("Specular (Ks)");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat("##KsSpec", &phongKs, 0.0f, 1.0f);
+
+        ImGui::Text("Shininess");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat("##Shin", &phongShininess, 1.0f, 128.0f);
+
+        ImGui::Text("Diffuse Color");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::ColorEdit4("##DiffCol", &phongDiffuseColor.x);
+
+        ImGui::Separator();
 
         ImGui::Checkbox("Use Texture", &isTextureVisible);
+        ImGui::SameLine();
+        ImGui::Checkbox("Show normals", &isNormalsVisible);
+
+        ImGui::Separator();
+
+        // -------------------------
+        // Wireframe modes 
+        // -------------------------
+        enum class WireMode { Solid, Wireframe, Overlay };
+        static WireMode wireMode = WireMode::Solid;
+
+        ImGui::Text("View Mode");
+        ImGui::RadioButton("Solid", (int*)&wireMode, (int)WireMode::Solid);
+        ImGui::SameLine(0, 10);
+        ImGui::RadioButton("Wireframe", (int*)&wireMode, (int)WireMode::Wireframe);
+        ImGui::SameLine(0, 10);
+        ImGui::RadioButton("Overlay", (int*)&wireMode, (int)WireMode::Overlay);
+
+        isWireframe = (wireMode == WireMode::Wireframe);
+        isWireframeOverlay = (wireMode == WireMode::Overlay);
     }
 
     if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen))
     {
-        ImGui::Checkbox("Show Light Direction", &isLightGizmoVisible);
 
-        ImGui::Text("Direction");
-        ImGui::DragFloat3("Light Dir", &lightDir.x, 0.01f, -1.0f, 1.0f);
+        ImGui::Text("Directial Light");
+
+        ImGui::Text("Light Direction");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::DragFloat3("##LightDir", &lightDir.x, 0.01f, -1.0f, 1.0f);
         lightDir.Normalize();
 
-        ImGui::ColorEdit3("Light Color", &lightColor.x);
-        ImGui::ColorEdit3("Ambient", &ambient.x);
+        ImGui::Text("Light Color");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::ColorEdit3("##LightCol", &lightColor.x);
+
+        ImGui::Text("Ambient");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::ColorEdit3("##Ambi", &ambient.x);
+
+        ImGui::Separator();
+        ImGui::Checkbox("Show Light Direction", &isLightGizmoVisible);
     }
 
-    if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("Camera"))
     {
         // Camera info
         ImGui::Text("Speed");
@@ -479,35 +610,32 @@ void Exercise6::ExerciseMenu(CameraModule* camera)
 
         ImGui::Separator();
 
-        // Camera Projection
-        if (ImGui::CollapsingHeader("Projection", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            ImGui::PushItemWidth(180.0f);
+        ImGui::Text("Projection");
+        ImGui::PushItemWidth(180.0f);
 
-            camFov = camera->GetFov();
-            if (ImGui::SliderFloat("FOV", &camFov, 0.1f, 3.0f, "%.2f"))
-                camera->SetFov(camFov);
+        camFov = camera->GetFov();
+        if (ImGui::SliderFloat("FOV", &camFov, 0.1f, 3.0f, "%.2f"))
+            camera->SetFov(camFov);
 
-            camNear = camera->GetNearPlane();
-            if (ImGui::SliderFloat("Near", &camNear, 0.01f, 5.0f, "%.3f"))
-                camera->SetNearPlane(camNear);
+        camNear = camera->GetNearPlane();
+        if (ImGui::SliderFloat("Near", &camNear, 0.01f, 5.0f, "%.3f"))
+            camera->SetNearPlane(camNear);
 
-            camFar = camera->GetFarPlane();
-            if (ImGui::SliderFloat("Far", &camFar, 10.0f, 500.0f, "%.0f"))
-                camera->SetFarPlane(camFar);
+        camFar = camera->GetFarPlane();
+        if (ImGui::SliderFloat("Far", &camFar, 10.0f, 500.0f, "%.0f"))
+            camera->SetFarPlane(camFar);
 
-            ImGui::PopItemWidth();
-        }
+        ImGui::PopItemWidth();
+     
     }
 
-    if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen))
+    if (ImGui::CollapsingHeader("World"))
     {
         ImGui::Checkbox("Show grid    ", &isGridVisible);
         ImGui::SameLine();
         ImGui::Checkbox("Show axis", &isAxisVisible);
-        ImGui::Checkbox("Show model", &isGeoVisible);
-        ImGui::SameLine();
-        ImGui::Checkbox("Show gizmo", &isGizmoVisible);
+        
+
     }
 
     ImGui::Separator();
@@ -522,7 +650,7 @@ void Exercise6::ExerciseMenu(CameraModule* camera)
         // Camera resets  
         camSpeed = 5.0f;
         camFov = camera->SetFov(XM_PIDIV4);
-        camNear = camera->SetNearPlane(0.1f);
+        camNear = camera->SetNearPlane(1.0f);
         camFar = camera->SetFarPlane(100.0);
 
         //Display

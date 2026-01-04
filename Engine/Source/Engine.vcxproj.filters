@@ -118,6 +118,9 @@
     <ClCompile Include="RingBufferModule.cpp">
       <Filter>Modules</Filter>
     </ClCompile>
+    <ClCompile Include="Exercise7.cpp">
+      <Filter>Exercises</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -255,6 +258,9 @@
     <ClInclude Include="RingBufferModule.h">
       <Filter>Modules</Filter>
     </ClInclude>
+    <ClInclude Include="Exercise7.h">
+      <Filter>Exercises</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Engine.ico">
@@ -353,6 +359,9 @@
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
     <FxCompile Include="NormalsPS.hlsl">
+      <Filter>Exercises\Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Exercise7PS.hlsl">
       <Filter>Exercises\Shaders</Filter>
     </FxCompile>
   </ItemGroup>

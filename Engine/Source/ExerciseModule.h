@@ -8,6 +8,7 @@ class Exercise3;
 class Exercise4;
 class Exercise5;
 class Exercise6;
+class Exercise7;
 
 class ExerciseModule : public Module
 {
@@ -20,6 +21,7 @@ private:
 	Exercise4* exe4 = nullptr;
 	Exercise5* exe5 = nullptr;
 	Exercise6* exe6 = nullptr;
+	Exercise7* exe7 = nullptr;
 
 public:
 	ExerciseModule(D3D12Module* d3d12);
@@ -35,6 +37,7 @@ public:
 	void exercise4();
 	void exercise5();
 	void exercise6();
+	void exercise7();
 
 };
 

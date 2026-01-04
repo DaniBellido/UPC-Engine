@@ -7,6 +7,7 @@
 #include "Exercise4.h"
 #include "Exercise5.h"
 #include "Exercise6.h"
+#include "Exercise7.h"
 
 ExerciseModule::ExerciseModule(D3D12Module* d3d12)
 {
@@ -18,6 +19,7 @@ ExerciseModule::ExerciseModule(D3D12Module* d3d12)
 	exe4 = new Exercise4();
 	exe5 = new Exercise5();
 	exe6 = new Exercise6();
+	exe7 = new Exercise7();
 }
 
 ExerciseModule::~ExerciseModule()
@@ -35,6 +37,8 @@ bool ExerciseModule::init()
 	exe4->init();
 	exe5->init();
 	exe6->init();
+	exe7->init();
+
 
 	t.Stop();
 	Logger::Log("ExerciseModule initialized in: " + std::to_string(t.ReadMs()) + " ms.");
@@ -49,6 +53,7 @@ bool ExerciseModule::cleanUp()
 	delete exe4;
 	delete exe5;
 	delete exe6;
+	delete exe7;
 
 	return true;
 }
@@ -86,6 +91,11 @@ void ExerciseModule::exercise5()
 void ExerciseModule::exercise6()
 {
 	exe6->render();
+}
+
+void ExerciseModule::exercise7()
+{
+	exe7->render();
 }
 
 

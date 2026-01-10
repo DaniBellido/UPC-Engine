@@ -9,6 +9,7 @@
 #include "ReadData.h"
 #include <d3dcompiler.h>
 #include "d3dx12.h"
+#include "SceneRenderPass.h"
 
 
 bool Exercise3::init()
@@ -37,24 +38,13 @@ void Exercise3::render()
     D3D12Module* d3d12 = app->getD3D12();
     ID3D12GraphicsCommandList* commandList = d3d12->getCommandList();
 
-    // ------------------------------------------------------------
-    // Set viewport and scissor rect
-    // ------------------------------------------------------------
-    D3D12_VIEWPORT viewport{ 0.0f, 0.0f, float(d3d12->getWindowWidth()), float(d3d12->getWindowHeight()), 0.0f, 1.0f };  // The viewport defines the area of the screen where pixels are drawn
-    D3D12_RECT scissor{ 0, 0, LONG(d3d12->getWindowWidth()), LONG(d3d12->getWindowHeight()) };
-    commandList->RSSetViewports(1, &viewport);                  // Assign viewport and scissor to the rasterizer stage
-    commandList->RSSetScissorRects(1, &scissor);
+    SceneRenderPass pass = GetSceneRenderPass(app);
 
     // ------------------------------------------------------------
-    // Clearing RTV & DSV
+    // Begin Viewport
     // ------------------------------------------------------------
     float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv = d3d12->getRenderTargetDescriptor();
-    D3D12_CPU_DESCRIPTOR_HANDLE dsv = d3d12->getDepthStencilDescriptor();
-
-    commandList->OMSetRenderTargets(1, &rtv, false, &dsv);
-    commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-    commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+    pass.begin(commandList, clearColor);
 
     // ------------------------------------------------------------
     // Set up the graphics pipeline
@@ -79,17 +69,14 @@ void Exercise3::render()
     SimpleMath::Matrix view = SimpleMath::Matrix::CreateLookAt(
         SimpleMath::Vector3(0.0f, 3.0f, camDistance),SimpleMath::Vector3::Zero,SimpleMath::Vector3::Up);
 
-    float aspect = float(d3d12->getWindowWidth()) / float(d3d12->getWindowHeight());
-    SimpleMath::Matrix proj = SimpleMath::Matrix::CreatePerspectiveFieldOfView(XM_PIDIV4, aspect, 0.1f, 100.0f);
+    SimpleMath::Matrix proj = SimpleMath::Matrix::CreatePerspectiveFieldOfView(XM_PIDIV4, pass.aspect, 0.1f, 100.0f);
 
     mvpMatrix = (model * view * proj).Transpose();
     commandList->SetGraphicsRoot32BitConstants(0, 64, &mvpMatrix, 0);
 
-
     // ------------------------------------------------------------
     // GRID
     // ------------------------------------------------------------
-
     dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray);
     dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f);
 
@@ -98,7 +85,9 @@ void Exercise3::render()
     // ------------------------------------------------------------
     commandList->DrawInstanced(3, 1, 0, 0);   // DrawInstanced(numVertices, numInstances, startVertex, startInstance)
 
-    app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
+    app->getDebugDrawPass()->record(commandList, pass.width, pass.height, view, proj);
+
+    pass.end(commandList);
 }
 
 bool Exercise3::createVertexBuffer()

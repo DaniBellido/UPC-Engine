@@ -5,7 +5,7 @@
 #include "Application.h"
 #include <d3d12.h>
 #include "ReadData.h"
-
+#include "SceneRenderPass.h"
 
 bool Exercise2::init()
 {
@@ -18,57 +18,70 @@ bool Exercise2::init()
 
 void Exercise2::render()
 {
-    // D3D12Module handles:
-    // - preRender(): resets the command allocator and list, transitions the back buffer to RENDER_TARGET,
-    //                and sets the render target (OMSetRenderTargets)
-    // - postRender(): transitions the back buffer to PRESENT, closes the command list,
-    //                 executes it, and presents the frame.
-    //  Only need to:
-    // - Set pipeline and root signature
-    // - Set buffers and topology
-    // - Issue draw calls
-
-
-    // We get the command list that has already been reset and prepared by preRender() in D3D12Module
-    // (preRender() does: Reset allocator, Reset commandList, transition to RENDER_TARGET, OMSetRenderTargets)
+    // ------------------------------------------------------------
+    // Grab the D3D12 module + command list for this frame
+    // (the command list is already open / recording at this point)
+    // ------------------------------------------------------------
     D3D12Module* d3d12 = app->getD3D12();
     ID3D12GraphicsCommandList* commandList = d3d12->getCommandList();
 
     // ------------------------------------------------------------
-    // Set viewport and scissor rect
+    // SceneRenderPass decides WHERE we render this frame:
+    //   - If the viewport is active/usable -> render into the viewport texture
+    //   - Otherwise                         -> render into the swapchain backbuffer
+    //
+    // It also carries the correct width/height/aspect for the chosen target
     // ------------------------------------------------------------
-    
-    // The viewport defines the area of the screen where pixels are drawn
-    D3D12_VIEWPORT viewport{ 0.0f, 0.0f, float(d3d12->getWindowWidth()), float(d3d12->getWindowHeight()), 0.0f, 1.0f };
-    D3D12_RECT scissor{ 0, 0, LONG(d3d12->getWindowWidth()), LONG(d3d12->getWindowHeight()) };
-    // Assign viewport and scissor to the rasterizer stage
-    commandList->RSSetViewports(1, &viewport);
-    commandList->RSSetScissorRects(1, &scissor);
+    SceneRenderPass pass = GetSceneRenderPass(app);
 
     // ------------------------------------------------------------
-    // Set up the graphics pipeline
+    // Begin the render pass:
+    //   - Transitions the selected color target into RENDER_TARGET state
+    //   - Binds RTV (and DSV if available) to the OM stage
+    //   - Sets viewport + scissor to match the target dimensions
+    //   - Optionally clears the RTV (and clears DSV if the pass does that)
+    //
+    // IMPORTANT (Debug Layer / Performance):
+    // The viewport color texture was created with an optimized clear value,
+    // clearing with a different color triggers warning ID3D12CommandList::ClearRenderTargetView due to a missmatch
+    // The viewport module in this project creates the texture with (0.2,0.2,0.2,1),
+    // so we clear with that exact same value to keep it "optimized" and warning-free
     // ------------------------------------------------------------
-  
-    // The root signature defines how resources are passed to shaders
+    const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
+    pass.begin(commandList, clearColor);
+
+    // ------------------------------------------------------------
+    // Bind pipeline state:
+    //   - Root signature defines what resources/constants are expected
+    //   - PSO defines shaders, input layout, render target formats, etc.
+    // ------------------------------------------------------------
     commandList->SetGraphicsRootSignature(rootSignature.Get());
-    // The PSO (Pipeline State Object) contains shaders, input layout, blend state, rasterizer state, etc.
     commandList->SetPipelineState(pso.Get());
 
     // ------------------------------------------------------------
-    // Configure the Input Assembler
+    // Bind geometry:
+    // We render a triangle (triangle list topology + vertex buffer)
     // ------------------------------------------------------------
-    
-    // Set primitive type (triangles)
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    // Assign the vertex buffer containing the triangle’s vertices
     commandList->IASetVertexBuffers(0, 1, &vertexBufferView);
 
     // ------------------------------------------------------------
     // Draw the geometry
+    // DrawInstanced(vertexCountPerInstance, instanceCount, startVertex, startInstance)
+    // Here: 3 vertices -> one triangle
     // ------------------------------------------------------------
-    // DrawInstanced(numVertices, numInstances, startVertex, startInstance)
-    // Here we draw 3 vertices forming a single triangle
     commandList->DrawInstanced(3, 1, 0, 0);
+
+    // ------------------------------------------------------------
+    // End the render pass:
+    //   - Transitions the color target to the correct state for its next use:
+    //       * viewport texture -> typically PIXEL_SHADER_RESOURCE (so ImGui can sample it)
+    //       * backbuffer       -> typically PRESENT
+    //
+    // This is REQUIRED when rendering into the viewport texture; otherwise,
+    // the texture may stay in RENDER_TARGET state and break ImGui sampling
+    // ------------------------------------------------------------
+    pass.end(commandList);
 
 }
 

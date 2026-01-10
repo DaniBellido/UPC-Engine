@@ -7,6 +7,7 @@
 #include "SamplersModule.h"
 #include "CameraModule.h"
 #include "Application.h"
+#include "ViewportModule.h"
 
 #include <d3d12.h>
 #include "ReadData.h"
@@ -16,6 +17,8 @@
 #include "Model.h"
 #include "Mesh.h"
 #include "BasicMaterial.h"
+
+#include "SceneRenderPass.h"
 
 Exercise5::Exercise5()
 {
@@ -62,24 +65,14 @@ void Exercise5::render()
     // ----------------------------------------------------------------
     ExerciseMenu(camera);
 
-    // ------------------------------------------------------------
-    // Set viewport and scissor rect
-    // ------------------------------------------------------------
-    D3D12_VIEWPORT viewport{ 0.0f, 0.0f, float(d3d12->getWindowWidth()), float(d3d12->getWindowHeight()), 0.0f, 1.0f };  // The viewport defines the area of the screen where pixels are drawn
-    D3D12_RECT scissor{ 0, 0, LONG(d3d12->getWindowWidth()), LONG(d3d12->getWindowHeight()) };
-    commandList->RSSetViewports(1, &viewport);                  // Assign viewport and scissor to the rasterizer stage
-    commandList->RSSetScissorRects(1, &scissor);
+    SceneRenderPass pass = GetSceneRenderPass(app);
+    
 
     // ------------------------------------------------------------
     // Clearing RTV & DSV
     // ------------------------------------------------------------
     float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv = d3d12->getRenderTargetDescriptor();
-    D3D12_CPU_DESCRIPTOR_HANDLE dsv = d3d12->getDepthStencilDescriptor();
-
-    commandList->OMSetRenderTargets(1, &rtv, false, &dsv);
-    commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-    commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+    pass.begin(commandList, clearColor);
 
     // ------------------------------------------------------------
     // Set up the graphics pipeline
@@ -111,7 +104,7 @@ void Exercise5::render()
     }
     
 
-    mvpMatrix = (duck->getModelMatrix() * camera->getView() * camera->GetProjection(camera->getAspect())).Transpose();
+    mvpMatrix = (duck->getModelMatrix() * camera->getView() * camera->GetProjection(pass.aspect)).Transpose();
 
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
    
@@ -144,7 +137,8 @@ void Exercise5::render()
         loadModel(commandList, shaders, samplers);
     }
 
-    app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), camera->getView(), camera->GetProjection(camera->getAspect()));
+    app->getDebugDrawPass()->record(commandList, pass.width, pass.height, camera->getView(), camera->GetProjection(pass.aspect));
+    pass.end(commandList);
 }
 
 bool Exercise5::createRootSignature()
@@ -443,12 +437,27 @@ void Exercise5::ExerciseMenu(CameraModule* camera)
 
 void Exercise5::ApplyImGuizmo(CameraModule* camera)
 {
+    ViewportModule* vp = app->getViewport();
+    if (!vp || !vp->isVisible())
+        return;
+
+    if (!vp->isHovered() && !vp->isFocused() && !ImGuizmo::IsUsing())
+        return;
 
     ImGuizmo::BeginFrame();
     ImGuizmo::Enable(true);
+    ImDrawList* dl = vp->getDrawList();
+    if (!dl) return;
+    ImGuizmo::SetDrawlist(dl);
 
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0.0f, 0.0f, io.DisplaySize.x, io.DisplaySize.y);
+    ImGui::Begin("Viewport");
+    ImGuizmo::BeginFrame();
+    ImGuizmo::Enable(true);
+    ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+
+    ImVec2 pos = vp->getViewportPos();
+    ImVec2 size = vp->getViewportSize();
+    ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
 
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::SetGizmoSizeClipSpace(0.1f);
@@ -458,7 +467,12 @@ void Exercise5::ApplyImGuizmo(CameraModule* camera)
     // -------------------------------
     DirectX::XMMATRIX modelM = duck->getModelMatrix();
     DirectX::XMMATRIX viewM = camera->getView();
-    DirectX::XMMATRIX projM = camera->GetProjection(camera->getAspect());
+
+    float aspect = camera->getAspect();
+    if (size.y > 0.0f)
+        aspect = size.x / size.y;
+
+    DirectX::XMMATRIX projM = camera->GetProjection(aspect);
 
     // XMFLOAT4X4 as intermediate buffer
     DirectX::XMFLOAT4X4 modelF;
@@ -471,6 +485,8 @@ void Exercise5::ApplyImGuizmo(CameraModule* camera)
 
     // ImGuizmo Call
     ImGuizmo::Manipulate(&viewF.m[0][0], &projF.m[0][0], currentOperation, ImGuizmo::WORLD, &modelF.m[0][0]);
+
+    ImGui::End();
 
     // -------------------------------
     // Apply changes to duck
@@ -489,6 +505,7 @@ void Exercise5::ApplyImGuizmo(CameraModule* camera)
         scaleX = scale.x;    // scale
         scaleY = scale.y;
         scaleZ = scale.z;
+
         positionX = pos.x;   // position
         positionY = pos.y;
         positionZ = pos.z;

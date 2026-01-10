@@ -8,6 +8,7 @@
 #include "CameraModule.h"
 #include "RingBufferModule.h"
 #include "Application.h"
+#include "ViewportModule.h"
 
 #include <d3d12.h>
 #include "ReadData.h"
@@ -17,6 +18,8 @@
 #include "Model.h"
 #include "Mesh.h"
 #include "BasicMaterial.h"
+
+#include "SceneRenderPass.h"
 
 Exercise6::Exercise6()
 {
@@ -66,28 +69,13 @@ void Exercise6::render()
     // ----------------------------------------------------------------
     ExerciseMenu(camera);
 
+    //------------------------------------------------------------
+    // Scene render pass (Viewport or Backbuffer)
     // ------------------------------------------------------------
-    // Set viewport and scissor rect
-    // ------------------------------------------------------------
-    const float width = float(d3d12->getWindowWidth());
-    const float height = float(d3d12->getWindowHeight());
+    SceneRenderPass pass = GetSceneRenderPass(app);
 
-    D3D12_VIEWPORT viewport{ 0.0f, 0.0f, width, height, 0.0f, 1.0f };                           // The viewport defines the area of the screen where pixels are drawn
-    D3D12_RECT scissor{ 0, 0, LONG(d3d12->getWindowWidth()), LONG(d3d12->getWindowHeight()) };
-
-    commandList->RSSetViewports(1, &viewport);                                                  // Assign viewport and scissor to the rasterizer stage
-    commandList->RSSetScissorRects(1, &scissor);
-
-    // ------------------------------------------------------------
-    // Clearing RTV & DSV
-    // ------------------------------------------------------------
     const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv = d3d12->getRenderTargetDescriptor();
-    D3D12_CPU_DESCRIPTOR_HANDLE dsv = d3d12->getDepthStencilDescriptor();
-
-    commandList->OMSetRenderTargets(1, &rtv, false, &dsv);
-    commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-    commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+    pass.begin(commandList, clearColor);
 
     // ------------------------------------------------------------
     // Pipeline state
@@ -134,7 +122,8 @@ void Exercise6::render()
     if (isGizmoVisible)
         ApplyImGuizmo(camera);
 
-    mvpMatrix = (duck->getModelMatrix() * camera->getView() * camera->GetProjection(camera->getAspect())).Transpose();
+    auto proj = camera->GetProjection(pass.aspect);
+    mvpMatrix = (duck->getModelMatrix() * camera->getView() * proj).Transpose();
 
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
 
@@ -189,7 +178,9 @@ void Exercise6::render()
     // ------------------------------------------------------------
     // Debug pass (last)
     // ------------------------------------------------------------
-    app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), camera->getView(), camera->GetProjection(camera->getAspect()));
+    app->getDebugDrawPass()->record(commandList, pass.width, pass.height, camera->getView(), proj);
+
+    pass.end(commandList);
 }
 
 bool Exercise6::createRootSignature()
@@ -666,11 +657,27 @@ void Exercise6::ExerciseMenu(CameraModule* camera)
 
 void Exercise6::ApplyImGuizmo(CameraModule* camera)
 {
+    ViewportModule* vp = app->getViewport();
+    if (!vp || !vp->isVisible())
+        return;
+
+    if (!vp->isHovered() && !vp->isFocused() && !ImGuizmo::IsUsing())
+        return;
+
     ImGuizmo::BeginFrame();
     ImGuizmo::Enable(true);
+    ImDrawList* dl = vp->getDrawList();
+    if (!dl) return;
+    ImGuizmo::SetDrawlist(dl);
 
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0.0f, 0.0f, io.DisplaySize.x, io.DisplaySize.y);
+    ImGui::Begin("Viewport");
+    ImGuizmo::BeginFrame();
+    ImGuizmo::Enable(true);
+    ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
+
+    ImVec2 pos = vp->getViewportPos();
+    ImVec2 size = vp->getViewportSize();
+    ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
 
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::SetGizmoSizeClipSpace(0.1f);
@@ -694,6 +701,7 @@ void Exercise6::ApplyImGuizmo(CameraModule* camera)
     // ImGuizmo Call
     ImGuizmo::Manipulate(&viewF.m[0][0], &projF.m[0][0], currentOperation, ImGuizmo::WORLD, &modelF.m[0][0]);
 
+    ImGui::End();
     // -------------------------------
     // Apply changes to duck
     // -------------------------------

@@ -12,6 +12,7 @@
 #include "ReadData.h"
 #include <d3dcompiler.h>
 #include "d3dx12.h"
+#include "SceneRenderPass.h"
 
 bool Exercise4::init()
 {
@@ -91,24 +92,12 @@ void Exercise4::render()
     // ----------------------------------------------------------------
     ExerciseMenu(camera);
 
-    // ------------------------------------------------------------
-    // Set viewport and scissor rect
-    // ------------------------------------------------------------
-    D3D12_VIEWPORT viewport{ 0.0f, 0.0f, float(d3d12->getWindowWidth()), float(d3d12->getWindowHeight()), 0.0f, 1.0f };  // The viewport defines the area of the screen where pixels are drawn
-    D3D12_RECT scissor{ 0, 0, LONG(d3d12->getWindowWidth()), LONG(d3d12->getWindowHeight()) };
-    commandList->RSSetViewports(1, &viewport);                  // Assign viewport and scissor to the rasterizer stage
-    commandList->RSSetScissorRects(1, &scissor);
+    //Viewport
+    SceneRenderPass pass = GetSceneRenderPass(app);
 
-    // ------------------------------------------------------------
-    // Clearing RTV & DSV
-    // ------------------------------------------------------------
     float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv = d3d12->getRenderTargetDescriptor();
-    D3D12_CPU_DESCRIPTOR_HANDLE dsv = d3d12->getDepthStencilDescriptor();
-
-    commandList->OMSetRenderTargets(1, &rtv, false, &dsv);
-    commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-    commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+    pass.begin(commandList, clearColor);
+  
 
     // ------------------------------------------------------------
     // Set up the graphics pipeline
@@ -138,10 +127,10 @@ void Exercise4::render()
 
 
     SimpleMath::Matrix view = camera->getView();
-    float aspect = camera->getAspect();
-    SimpleMath::Matrix proj = camera->GetProjection(aspect);
+    SimpleMath::Matrix proj = camera->GetProjection(pass.aspect);
 
     mvpMatrix = (model * view * proj).Transpose();
+
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
 
     // ------------------------------------------------------------
@@ -176,8 +165,9 @@ void Exercise4::render()
     // ------------------------------------------------------------
     if (isGeoVisible) { commandList->DrawIndexedInstanced(36, 1, 0, 0, 0); }
 
-    app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), view, proj);
+    app->getDebugDrawPass()->record(commandList, pass.width, pass.height, view, proj);
 
+    pass.end(commandList);
 }
 
 bool Exercise4::createVertexBuffer()

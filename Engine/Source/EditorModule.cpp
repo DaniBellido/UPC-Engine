@@ -2,7 +2,9 @@
 #include "EditorModule.h"
 #include "D3D12Module.h"
 #include "Application.h"
+#include "ShaderDescriptorsModule.h"
 #include "RingBufferModule.h"
+#include "SamplersModule.h"
 
 
 enum class ExerciseSelection
@@ -33,6 +35,11 @@ bool EditorModule::init()
 	Timer t;
 	t.Start();
 
+	ShaderDescriptorsModule* shaderDesc = app->getShaderDescriptors();
+
+	cpuHandle = shaderDesc->getCPUHandle(0);
+	gpuHandle = shaderDesc->getGPUHandle(0);
+
 	imGuiPass = new ImGuiPass(d3d12->getDevice(), hWnd, cpuHandle, gpuHandle);
 
 	console = new ConsoleModule();
@@ -40,6 +47,8 @@ bool EditorModule::init()
 
 	viewport = new ViewportModule(hWnd, d3d12, imGuiPass);
 	viewport->init();
+
+	app->setViewport(viewport);
 
 	exercise = new ExerciseModule(d3d12);
 	exercise->init();
@@ -54,14 +63,17 @@ bool EditorModule::init()
 void EditorModule::preRender()
 {
 	imGuiPass->startFrame();
-    //createDockSpace();
+
 	drawToolbar();
+
+	if (viewport->isVisible()) 
+	{
+		createDockSpace();
+		viewport->preRender();
+	}
 
 	if (console->isVisible())
 		console->preRender();
-
-	if (viewport->isVisible())
-		viewport->preRender();
 
 	if (showExercisesWindow)
 		drawExerciseMenu();
@@ -76,50 +88,45 @@ void EditorModule::preRender()
 
 void EditorModule::render()
 {
-	// Get render descriptor
-	auto rtvHandle = d3d12->getRenderTargetDescriptor();
+	ID3D12GraphicsCommandList* cmd = d3d12->getCommandList();
 
-	// RGBA between 0 and 1
+	// 1) Asegura heaps shader-visible para este frame (OBLIGATORIO tras Reset)
+	ID3D12DescriptorHeap* frameHeaps[] =
+	{
+		app->getShaderDescriptors()->getHeap(), // CBV/SRV/UAV
+		app->getSamplers()->getHeap()           // Samplers
+	};
+	cmd->SetDescriptorHeaps(_countof(frameHeaps), frameHeaps);
+
+	// 2) Backbuffer como target + clear
+	auto bbRtv = d3d12->getRenderTargetDescriptor();
+	auto bbDsv = d3d12->getDepthStencilDescriptor();
+	cmd->OMSetRenderTargets(1, &bbRtv, FALSE, &bbDsv);
+
 	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	cmd->ClearRenderTargetView(bbRtv, clearColor, 0, nullptr);
 
-	// Clear the current RTV
-	d3d12->getCommandList()->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
-
-	// Execute selected exercise
+	// 3) Ejecuta ejercicio
 	switch (currentExercise)
 	{
-	case ExerciseSelection::Exercise1:
-		exercise->exercise1();
-		break;
-
-	case ExerciseSelection::Exercise2:
-		exercise->exercise2();   
-		break;
-
-	case ExerciseSelection::Exercise3:
-		exercise->exercise3();
-		break;
-
-	case ExerciseSelection::Exercise4:
-		exercise->exercise4();
-		break;
-
-	case ExerciseSelection::Exercise5:
-		exercise->exercise5();
-		break;
-	case ExerciseSelection::Exercise6:
-		exercise->exercise6();
-		break;
-	case ExerciseSelection::Exercise7:
-		exercise->exercise7();
-		break;
-
-	default:
-		break;
+	case ExerciseSelection::Exercise1: exercise->exercise1(); break;
+	case ExerciseSelection::Exercise2: exercise->exercise2(); break;
+	case ExerciseSelection::Exercise3: exercise->exercise3(); break;
+	case ExerciseSelection::Exercise4: exercise->exercise4(); break;
+	case ExerciseSelection::Exercise5: exercise->exercise5(); break;
+	case ExerciseSelection::Exercise6: exercise->exercise6(); break;
+	case ExerciseSelection::Exercise7: exercise->exercise7(); break;
+	default: break;
 	}
 
-	// This must be the last call
-	imGuiPass->record(d3d12->getCommandList(), d3d12->getRenderTargetDescriptor());
+	// 4) IMPORTANTÍSIMO: vuelve a dejar backbuffer + heap correcto para ImGui
+	cmd->OMSetRenderTargets(1, &bbRtv, FALSE, &bbDsv);
+
+	ID3D12DescriptorHeap* imguiHeaps[] = { app->getShaderDescriptors()->getHeap() };
+	cmd->SetDescriptorHeaps(1, imguiHeaps);
+
+	// 5) Último: ImGui
+	imGuiPass->record(cmd, bbRtv);
 
 }
 

@@ -6,6 +6,7 @@
 #include "ShaderDescriptorsModule.h"
 #include "SamplersModule.h"
 #include "CameraModule.h"
+#include "ViewportModule.h"
 #include "RingBufferModule.h"
 #include "Application.h"
 
@@ -17,6 +18,8 @@
 #include "Model.h"
 #include "Mesh.h"
 #include "BasicMaterial.h"
+
+#include "SceneRenderPass.h"
 
 Exercise7::Exercise7()
 {
@@ -60,6 +63,8 @@ void Exercise7::render()
     ID3D12GraphicsCommandList* commandList = d3d12->getCommandList();
     CameraModule* camera = app->getCamera();
     RingBufferModule* ring = app->getRingBuffer();
+    ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
+    SamplersModule* samplers = app->getSamplers();
 
     // ----------------------------------------------------------------
     // ImGui Window
@@ -67,27 +72,12 @@ void Exercise7::render()
     ExerciseMenu(camera);
 
     // ------------------------------------------------------------
-    // Set viewport and scissor rect
+    // Scene render pass (Viewport or Backbuffer)
     // ------------------------------------------------------------
-    const float width = float(d3d12->getWindowWidth());
-    const float height = float(d3d12->getWindowHeight());
+    SceneRenderPass pass = GetSceneRenderPass(app);
 
-    D3D12_VIEWPORT viewport{ 0.0f, 0.0f, width, height, 0.0f, 1.0f };                           // The viewport defines the area of the screen where pixels are drawn
-    D3D12_RECT scissor{ 0, 0, LONG(d3d12->getWindowWidth()), LONG(d3d12->getWindowHeight()) };
-
-    commandList->RSSetViewports(1, &viewport);                                                  // Assign viewport and scissor to the rasterizer stage
-    commandList->RSSetScissorRects(1, &scissor);
-
-    // ------------------------------------------------------------
-    // Clearing RTV & DSV
-    // ------------------------------------------------------------
     const float clearColor[] = { 0.2f, 0.2f, 0.2f, 1.0f };
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv = d3d12->getRenderTargetDescriptor();
-    D3D12_CPU_DESCRIPTOR_HANDLE dsv = d3d12->getDepthStencilDescriptor();
-
-    commandList->OMSetRenderTargets(1, &rtv, false, &dsv);
-    commandList->ClearRenderTargetView(rtv, clearColor, 0, nullptr);
-    commandList->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+    pass.begin(commandList, clearColor);
 
     // ------------------------------------------------------------
     // Pipeline state
@@ -96,11 +86,8 @@ void Exercise7::render()
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Set primitive type (triangles)
 
     // ------------------------------------------------------------
-    // BIND TEXTURES
+    // Descriptor heaps
     // ------------------------------------------------------------
-    ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
-    SamplersModule* samplers = app->getSamplers();
-
     ID3D12DescriptorHeap* heaps[] =
     {
         shaders->getHeap(),     // t0: texture
@@ -122,7 +109,7 @@ void Exercise7::render()
     commandList->SetGraphicsRootConstantBufferView(2, perFrameGPU); // Bind PerFrame CBV -> slot 2 (b2)
 
     // ----------------------------------------------------------------
-    // Model-View-Projection Matrix Pipeline
+    // Model-View-Projection Matrix
     // ----------------------------------------------------------------
     SimpleMath::Matrix model =
         SimpleMath::Matrix::CreateScale(scaleX, scaleY, scaleZ) *
@@ -134,7 +121,8 @@ void Exercise7::render()
     if (isGizmoVisible)
         ApplyImGuizmo(camera);
 
-    mvpMatrix = (duck->getModelMatrix() * camera->getView() * camera->GetProjection(camera->getAspect())).Transpose();
+    auto proj = camera->GetProjection(pass.aspect);
+    mvpMatrix = (duck->getModelMatrix() * camera->getView() * proj).Transpose();
 
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
 
@@ -189,7 +177,9 @@ void Exercise7::render()
     // ------------------------------------------------------------
     // Debug pass (last)
     // ------------------------------------------------------------
-    app->getDebugDrawPass()->record(commandList, app->getD3D12()->getWindowWidth(), app->getD3D12()->getWindowHeight(), camera->getView(), camera->GetProjection(camera->getAspect()));
+    app->getDebugDrawPass()->record(commandList, pass.width, pass.height, camera->getView(), proj);
+
+    pass.end(commandList);
 }
 
 bool Exercise7::createRootSignature()
@@ -452,11 +442,27 @@ void Exercise7::drawModel(ID3D12GraphicsCommandList* commandList, ShaderDescript
 
 void Exercise7::ApplyImGuizmo(CameraModule* camera)
 {
+    ViewportModule* vp = app->getViewport();
+    if (!vp || !vp->isVisible())
+        return;
+
+    if (!vp->isHovered() && !vp->isFocused() && !ImGuizmo::IsUsing())
+        return;
+
     ImGuizmo::BeginFrame();
     ImGuizmo::Enable(true);
+    ImDrawList* dl = vp->getDrawList();
+    if (!dl) return;
+    ImGuizmo::SetDrawlist(dl);
+   
+    ImGui::Begin("Viewport");
+    ImGuizmo::BeginFrame();
+    ImGuizmo::Enable(true);
+    ImGuizmo::SetDrawlist(ImGui::GetWindowDrawList());
 
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0.0f, 0.0f, io.DisplaySize.x, io.DisplaySize.y);
+    ImVec2 pos = vp->getViewportPos();
+    ImVec2 size = vp->getViewportSize();
+    ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
 
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::SetGizmoSizeClipSpace(0.1f);
@@ -466,7 +472,12 @@ void Exercise7::ApplyImGuizmo(CameraModule* camera)
     // -------------------------------
     DirectX::XMMATRIX modelM = duck->getModelMatrix();
     DirectX::XMMATRIX viewM = camera->getView();
-    DirectX::XMMATRIX projM = camera->GetProjection(camera->getAspect());
+
+    float aspect = camera->getAspect();
+    if (size.y > 0.0f)
+        aspect = size.x / size.y;
+
+    DirectX::XMMATRIX projM = camera->GetProjection(aspect);
 
     // XMFLOAT4X4 as intermediate buffer
     DirectX::XMFLOAT4X4 modelF;
@@ -478,7 +489,11 @@ void Exercise7::ApplyImGuizmo(CameraModule* camera)
     DirectX::XMStoreFloat4x4(&projF, projM);
 
     // ImGuizmo Call
-    ImGuizmo::Manipulate(&viewF.m[0][0], &projF.m[0][0], currentOperation, ImGuizmo::WORLD, &modelF.m[0][0]);
+    ImGuizmo::Manipulate(&viewF.m[0][0], &projF.m[0][0],
+        currentOperation, ImGuizmo::WORLD,
+        &modelF.m[0][0]);
+
+    ImGui::End();
 
     // -------------------------------
     // Apply changes to duck
@@ -489,25 +504,26 @@ void Exercise7::ApplyImGuizmo(CameraModule* camera)
         duck->setModelMatrix(SimpleMath::Matrix(newModel));
 
         // Actualiza quaternion interno
-        SimpleMath::Vector3 scale, pos;
+        SimpleMath::Vector3 scale, pos3;
         SimpleMath::Quaternion rot;
-        SimpleMath::Matrix(newModel).Decompose(scale, rot, pos);
+        SimpleMath::Matrix(newModel).Decompose(scale, rot, pos3);
 
-        qRot = rot;          // rotacion
-        scaleX = scale.x;    // scale
+        qRot = rot;
+        scaleX = scale.x;
         scaleY = scale.y;
         scaleZ = scale.z;
-        positionX = pos.x;   // position
-        positionY = pos.y;
-        positionZ = pos.z;
 
-        // conversion
+        positionX = pos3.x;
+        positionY = pos3.y;
+        positionZ = pos3.z;
+
         SimpleMath::Vector3 euler = rot.ToEuler();
-        rotationX = XMConvertToDegrees(euler.x);  // pitch
-        rotationY = XMConvertToDegrees(euler.y);  // yaw  
-        rotationZ = XMConvertToDegrees(euler.z);  // roll
-
+        rotationX = XMConvertToDegrees(euler.x);
+        rotationY = XMConvertToDegrees(euler.y);
+        rotationZ = XMConvertToDegrees(euler.z);
     }
+
+   
 }
 
 void Exercise7::applyMaterialPreset(MaterialPreset preset)
@@ -550,6 +566,11 @@ void Exercise7::applyMaterialPreset(MaterialPreset preset)
 void Exercise7::ExerciseMenu(CameraModule* camera)
 {
     ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+    ImGui::Separator();
+    ImGui::Text("ImGuizmo: Over=%d Using=%d",
+        (int)ImGuizmo::IsOver(),
+        (int)ImGuizmo::IsUsing());
 
     if (ImGui::CollapsingHeader("Model Transform", ImGuiTreeNodeFlags_DefaultOpen))
     {

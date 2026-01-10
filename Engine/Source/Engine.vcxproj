@@ -205,6 +205,7 @@
     <ClInclude Include="ResourcesModule.h" />
     <ClInclude Include="RingBufferModule.h" />
     <ClInclude Include="SamplersModule.h" />
+    <ClInclude Include="SceneRenderPass.h" />
     <ClInclude Include="ShaderDescriptorsModule.h" />
     <ClInclude Include="SimpleMath.h" />
     <ClInclude Include="targetver.h" />
@@ -313,6 +314,7 @@
     <ClCompile Include="ResourcesModule.cpp" />
     <ClCompile Include="RingBufferModule.cpp" />
     <ClCompile Include="SamplersModule.cpp" />
+    <ClCompile Include="SceneRenderPass.cpp" />
     <ClCompile Include="ShaderDescriptorsModule.cpp" />
     <ClCompile Include="SimpleMath.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>

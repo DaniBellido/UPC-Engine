@@ -121,6 +121,9 @@
     <ClCompile Include="Exercise7.cpp">
       <Filter>Exercises</Filter>
     </ClCompile>
+    <ClCompile Include="SceneRenderPass.cpp">
+      <Filter>Passes</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -260,6 +263,9 @@
     </ClInclude>
     <ClInclude Include="Exercise7.h">
       <Filter>Exercises</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneRenderPass.h">
+      <Filter>Passes</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

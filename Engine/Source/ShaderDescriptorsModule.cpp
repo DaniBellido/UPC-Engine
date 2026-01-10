@@ -17,14 +17,15 @@ bool ShaderDescriptorsModule::init()
         return false;
 
     descriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    nextFreeSlot = 0;
+    nextFreeSlot = 1;
 
     return true;
 }
 
 void ShaderDescriptorsModule::reset()
 {
-    nextFreeSlot = 0;
+    // slot 0 reserved for ImGui
+    nextFreeSlot = 1;
 }
 
 UINT ShaderDescriptorsModule::allocate()

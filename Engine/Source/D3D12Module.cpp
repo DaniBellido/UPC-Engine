@@ -410,11 +410,13 @@ void D3D12Module::resize()
 	unsigned width, height;
 	getWindowSize(width, height);
 
+	const bool firstTime = (rtvDescriptorHeap == nullptr);
+
 	// Only continue if the size has actually changed
-	if (width != windowWidth || height != windowHeight)
+	if (firstTime || width != windowWidth || height != windowHeight)
 	{
-		windowWidth = width;
-		windowHeight = height;
+		windowWidth = std::max(1u, width);
+		windowHeight = std::max(1u, height);
 
 		waitForGPU();
 

@@ -50,6 +50,8 @@ public:
     float                       getRenderMs() const { return renderMs; }
     float                       getPostRenderMs() const { return postRenderMs; }
 
+    void setViewport(ViewportModule* vp) { viewport = vp; }
+
 private:
     enum { MAX_FPS_TICKS = 30 };
     typedef std::array<uint64_t, MAX_FPS_TICKS> TickList;

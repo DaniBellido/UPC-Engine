@@ -249,6 +249,45 @@ void CameraModule::update()
         target = orbitCenter;
     }
 
+    // ---------------------------------------------------------------------------
+    // MIDDLE MOUSE PAN (Mouse Wheel Button drag)
+    // ---------------------------------------------------------------------------
+    static bool panning = false;
+    static int  panLastX = 0;
+    static int  panLastY = 0;
+
+    // Start/stop panning with middle mouse button
+    if (ms.middleButton && !panning)
+    {
+        panning = true;
+        panLastX = ms.x;
+        panLastY = ms.y;
+    }
+    else if (!ms.middleButton && panning)
+    {
+        panning = false;
+    }
+
+    if (panning)
+    {
+        int dx = ms.x - panLastX;
+        int dy = ms.y - panLastY;
+        panLastX = ms.x;
+        panLastY = ms.y;
+
+        // World units moved per pixel of mouse drag (tune this)
+        float panUnitsPerPixel = 0.01f;
+
+        // Optional: speed up with Shift while panning
+        if (kb.IsKeyDown(Keyboard::Keys::LeftShift))
+            panUnitsPerPixel *= 3.0f;
+
+        // Screen-space drag -> camera-space translation
+        // (signs can be inverted to match the "feel" you want)
+        position += right * (dx * panUnitsPerPixel);
+        position += up * (dy * panUnitsPerPixel);
+    }
+
     // ------------------------------------------------------------------------
     // FINAL VIEW MATRIX
     // ------------------------------------------------------------------------

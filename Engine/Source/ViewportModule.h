@@ -80,6 +80,17 @@ private:
     UINT rtvDescriptorSize = 0;
     UINT dsvDescriptorSize = 0;
 
+    // ------------------------------------------------------------
+    // Splash / placeholder (optional)
+    // ------------------------------------------------------------
+    ComPtr<ID3D12Resource> splashTexture;
+    D3D12_CPU_DESCRIPTOR_HANDLE splashSrvCpuHandle = {};
+    D3D12_GPU_DESCRIPTOR_HANDLE splashSrvGpuHandle = {};
+    uint32_t splashWidth = 0;
+    uint32_t splashHeight = 0;
+
+    bool showSplash = true;
+
     // --------------------------------------------------
     // Helpers
     // --------------------------------------------------

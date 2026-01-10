@@ -7,6 +7,7 @@
 
 #include "EditorModule.h"
 #include "ShaderDescriptorsModule.h"
+#include "ResourcesModule.h"
 
 
 ViewportModule::ViewportModule(HWND hWnd, D3D12Module* d3d12, ImGuiPass* imGuiPass)
@@ -65,6 +66,24 @@ bool ViewportModule::init()
    // Resources are released in cleanUp() to prevent DX "Live Objects" warnings.
     createResources(width, height); //commented to avoid breaks when closing the app (DX Live Objects)
 
+
+    ResourcesModule* resources = app->getResources();
+    ShaderDescriptorsModule* shaders = app->getShaderDescriptors();
+
+    // Placeholder texture
+    splashTexture = resources->createTextureFromFile(L"Assets/Textures/Stage3DX.png");
+
+    if (splashTexture)
+    {
+        UINT idx = shaders->createSRV(splashTexture.Get());
+        splashSrvCpuHandle = shaders->getCPUHandle(idx);
+        splashSrvGpuHandle = shaders->getGPUHandle(idx);
+
+        auto desc = splashTexture->GetDesc();
+        splashWidth = (uint32_t)desc.Width;
+        splashHeight = (uint32_t)desc.Height;
+    }
+
     t.Stop();
     Logger::Log("ViewportModule initialized in: " + std::to_string(t.ReadMs()) + " ms.");
 
@@ -107,10 +126,31 @@ void ViewportModule::preRender()
 
     handleResize();
 
-    // ------------------------------------------------------------
-    // Draw viewport image (SRV) - this is what the user sees
-    // ------------------------------------------------------------
-    ImGui::Image((ImTextureID)srvGpuHandle.ptr, viewportSize);
+    // --------------------------------------------------------------------------
+    // Draw viewport image (SRV) - splash placeholder OR viewport render texture
+    // --------------------------------------------------------------------------
+    if (showSplash && splashTexture && splashWidth > 0 && splashHeight > 0)
+    {
+        // Keep aspect ratio (letterbox)
+        float texAspect = float(splashWidth) / float(splashHeight);
+        float winAspect = viewportSize.x / viewportSize.y;
+
+        ImVec2 imgSize = viewportSize;
+        if (winAspect > texAspect) imgSize.x = viewportSize.y * texAspect;
+        else                      imgSize.y = viewportSize.x / texAspect;
+
+        ImVec2 startCursor = ImGui::GetCursorPos();
+        ImGui::SetCursorPos(ImVec2(
+            startCursor.x + (viewportSize.x - imgSize.x) * 0.5f,
+            startCursor.y + (viewportSize.y - imgSize.y) * 0.5f
+        ));
+
+        ImGui::Image((ImTextureID)splashSrvGpuHandle.ptr, imgSize);
+    }
+    else
+    {
+        ImGui::Image((ImTextureID)srvGpuHandle.ptr, viewportSize);
+    }
 
     // ------------------------------------------------------------
     // Window interaction state (used by camera controls / gizmos)
@@ -141,6 +181,8 @@ bool ViewportModule::cleanUp()
 
 void ViewportModule::transitionToRenderTarget(ID3D12GraphicsCommandList* cmd)
 {
+    showSplash = false; // first time we render into the viewport, stop showing the splash
+
     // ------------------------------------------------------------
     // Viewport texture: SRV -> RTV
     // ------------------------------------------------------------

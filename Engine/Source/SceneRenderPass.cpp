@@ -28,7 +28,8 @@ void SceneRenderPass::begin(ID3D12GraphicsCommandList* cmd, const float clearCol
     // Output merger: bind targets + clear
     // ------------------------------------------------------------
     cmd->OMSetRenderTargets(1, &rtv, FALSE, &dsv);  // Bind color + depth targets
-    cmd->ClearRenderTargetView(rtv, clearColor, 0, nullptr); // Clear color buffer
+    if(clearColor)
+        cmd->ClearRenderTargetView(rtv, clearColor, 0, nullptr); // Clear color buffer
     cmd->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr); // Clear depth (and stencil if used)
 
 }

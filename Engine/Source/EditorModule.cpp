@@ -90,7 +90,7 @@ void EditorModule::render()
 {
 	ID3D12GraphicsCommandList* cmd = d3d12->getCommandList();
 
-	// 1) Asegura heaps shader-visible para este frame (OBLIGATORIO tras Reset)
+	// 1) Ensures heaps shader-visible for this frame
 	ID3D12DescriptorHeap* frameHeaps[] =
 	{
 		app->getShaderDescriptors()->getHeap(), // CBV/SRV/UAV
@@ -98,7 +98,7 @@ void EditorModule::render()
 	};
 	cmd->SetDescriptorHeaps(_countof(frameHeaps), frameHeaps);
 
-	// 2) Backbuffer como target + clear
+	// 2) Backbuffer as target + clear
 	auto bbRtv = d3d12->getRenderTargetDescriptor();
 	auto bbDsv = d3d12->getDepthStencilDescriptor();
 	cmd->OMSetRenderTargets(1, &bbRtv, FALSE, &bbDsv);
@@ -106,7 +106,7 @@ void EditorModule::render()
 	const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	cmd->ClearRenderTargetView(bbRtv, clearColor, 0, nullptr);
 
-	// 3) Ejecuta ejercicio
+	// 3) Execute ecercise
 	switch (currentExercise)
 	{
 	case ExerciseSelection::Exercise1: exercise->exercise1(); break;
@@ -119,13 +119,13 @@ void EditorModule::render()
 	default: break;
 	}
 
-	// 4) IMPORTANTÍSIMO: vuelve a dejar backbuffer + heap correcto para ImGui
+	// 4) Backbuffer and heap settings are correct for ImGui
 	cmd->OMSetRenderTargets(1, &bbRtv, FALSE, &bbDsv);
 
 	ID3D12DescriptorHeap* imguiHeaps[] = { app->getShaderDescriptors()->getHeap() };
 	cmd->SetDescriptorHeaps(1, imguiHeaps);
 
-	// 5) Último: ImGui
+	// 5) Last: ImGui
 	imGuiPass->record(cmd, bbRtv);
 
 }

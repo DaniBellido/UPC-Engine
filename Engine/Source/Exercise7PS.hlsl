@@ -16,17 +16,17 @@ cbuffer PerFrame : register(b2)
 };
 
 // ------------------------------------------------------------
-// PerInstance CBV (b1) — PBR-Phong
+// PerInstance CBV (b1)
 // ------------------------------------------------------------
 cbuffer PerInstance : register(b1)
 {
     float4x4 modelMat;
     float4x4 normalMat;
 
-    float3 diffuseColour; // Albedo
+    float3 diffuseColour;
     bool hasDiffuseTex;
 
-    float3 specularColour; // F0
+    float3 specularColour;
     float shininess;
 };
 
@@ -44,9 +44,9 @@ struct PSInput
 };
 
 // ------------------------------------------------------------
-// Fresnel Schlick
+// Fresnel Schlick 
 // ------------------------------------------------------------
-float3 FresnelSchlick(float cosTheta, float3 F0)
+float3 Schlick(float3 F0, float cosTheta)
 {
     return F0 + (1.0f - F0) * pow(1.0f - cosTheta, 5.0f);
 }
@@ -54,52 +54,27 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
 // ------------------------------------------------------------
 float4 main(PSInput input) : SV_TARGET
 {
-    float3 N = normalize(input.normal);
-    float3 Ldir = normalize(-L);
-    float3 V = normalize(viewPos - input.worldPos);
-    float3 H = normalize(Ldir + V);
-
-    float NdotL = saturate(dot(N, Ldir));
-    float NdotV = saturate(dot(N, V));
-    float NdotH = saturate(dot(N, H));
-    float VdotH = saturate(dot(V, H));
-
-    // -----------------------------
-    // Base color (albedo)
-    // -----------------------------
-    float3 albedo = diffuseColour;
+    
+    float3 Cd = diffuseColour;
+    
     if (hasDiffuseTex)
     {
-        albedo *= baseTexture.Sample(samplerState, input.texCoord).rgb;
+        Cd *= baseTexture.Sample(samplerState, input.texCoord).rgb;
     }
 
-    // -----------------------------
-    // Fresnel
-    // -----------------------------
-    float3 F = FresnelSchlick(VdotH, specularColour);
+    float3 N = normalize(input.normal);
 
-    // -----------------------------
-    // Diffuse (Lambert normalized)
-    // -----------------------------
-    float3 diffuse = albedo / PI;
+    
+    float3 R = reflect(L, N);
+    float3 V = normalize(viewPos - input.worldPos);
 
-    // -----------------------------
-    // Specular (Phong normalized)
-    // -----------------------------
-    float phongNorm = (shininess + 2.0f) / (2.0f * PI);
-    float3 specular = phongNorm * pow(NdotH, shininess) * F;
+    float dotVR = saturate(dot(V, R));
+    float dotNL = saturate(-dot(L, N));
 
-    // -----------------------------
-    // Energy conservation
-    // -----------------------------
-    float3 kd = 1.0f - F;
+    float rf0Max = max(max(specularColour.r, specularColour.g), specularColour.b);
+    float3 fresnel = Schlick(specularColour, dotNL);
 
-    // -----------------------------
-    // Lighting
-    // -----------------------------
-    float3 color =
-        Ac * albedo +
-        (kd * diffuse + specular) * Lc * NdotL;
+    float3 colour = ((Cd * (1.0f - rf0Max)) / PI + ((shininess + 2.0f) / 2.0f * PI) * fresnel * pow(dotVR, shininess)) * Lc * dotNL + Ac * Cd;
 
-    return float4(color, 1.0f);
+    return float4(colour, 1.0f);
 }

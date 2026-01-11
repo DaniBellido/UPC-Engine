@@ -63,9 +63,9 @@ private:
 	// ------------------------------------------------------------------------
 	// PBR Phong material overrides (PerInstance)
 	// ------------------------------------------------------------------------
-	float pbrPhongShininess = 32.0f;
+	float pbrPhongShininess = 64.0f;
 	SimpleMath::Vector4 pbrPhongDiffuseColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-	SimpleMath::Vector4 pbrPhongSpecularColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+	SimpleMath::Vector4 pbrPhongSpecularColor = { 0.015f, 0.015f, 0.015f, 0.0f };
 
 	enum class MaterialPreset
 	{

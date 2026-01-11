@@ -270,7 +270,7 @@ bool Exercise7::createPSO()
     // ------------------------------------------------------------
     // Load compiled shaders (.cso files)
     // ------------------------------------------------------------
-    auto dataVS = DX::ReadData(L"Exercise6VS.cso");
+    auto dataVS = DX::ReadData(L"Exercise7VS.cso");
     auto dataPS = DX::ReadData(L"Exercise7PS.cso");
 
 
@@ -558,7 +558,9 @@ void Exercise7::applyMaterialPreset(MaterialPreset preset)
 
     case MaterialPreset::Custom:
     default:
-        // Control manual desde ImGui
+        pbrPhongDiffuseColor = { 0.28f, 0.28f, 0.28f, 1.0f };
+        pbrPhongSpecularColor = { 0.015f, 0.015f, 0.015f };
+        pbrPhongShininess = 64.0f;
         break;
     }
 }

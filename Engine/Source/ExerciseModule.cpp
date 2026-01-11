@@ -32,6 +32,7 @@ bool ExerciseModule::init()
 	Timer t;
 	t.Start();
 
+	exe1->init();
 	exe2->init();
 	exe3->init();
 	exe4->init();

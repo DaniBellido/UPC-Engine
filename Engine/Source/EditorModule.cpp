@@ -64,13 +64,14 @@ void EditorModule::preRender()
 {
 	imGuiPass->startFrame();
 
-	drawToolbar();
-
 	if (viewport->isVisible()) 
 	{
 		createDockSpace();
 		viewport->preRender();
 	}
+
+	if (showRingBufferPanel)
+		drawRingBufferPanel();
 
 	if (console->isVisible())
 		console->preRender();
@@ -81,8 +82,9 @@ void EditorModule::preRender()
 	if (showPerformancePanel)
 		drawPerformancePanel();
 
-	if (showRingBufferPanel)
-		drawRingBufferPanel();
+	
+
+	drawToolbar();
 	
 }
 
@@ -272,7 +274,8 @@ void EditorModule::drawToolbar()
 		ImGui::Begin("Camera Controls", &showCameraControlsWindow, ImGuiWindowFlags_AlwaysAutoResize);
 
 		ImGui::Text("Mouse Controls:");
-		ImGui::BulletText("Right Mouse Button + Move: Rotate camera");
+		ImGui::BulletText("Right Mouse Button + Move: Rotate");
+		ImGui::BulletText("Mouse Wheel Button + Move: Pan");
 		ImGui::BulletText("Mouse Wheel: Zoom in/out");
 		ImGui::BulletText("Alt + Left Mouse Button + Move: Orbit around origin");
 

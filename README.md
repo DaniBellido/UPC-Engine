@@ -25,6 +25,12 @@ DirectX 12 rendering.
 
 Texture loading with mipmaps, filtering, and addressing options.
 
+GLTF Model loading (meshes and materials).
+
+Includes basic material, Phong, and PBR Phong. 
+
+Translate, rotate, and scale models with ImGuizmo. 
+
 3D grid and axes for reference.
 
 Unity-style camera controls:
@@ -32,6 +38,8 @@ Unity-style camera controls:
 RMB + WASD for movement.
 
 Alt + LMB for orbiting.
+
+Mouse wheel button to pan.
 
 Mouse wheel for zoom.
 
@@ -47,9 +55,11 @@ Toggle grid and axes visibility.
 
 Change texture filtering modes.
 
+Change View Mode.
+
 Real-time debug.
 
-Maintains aspect ratio when resizing the window.
+Maintains aspect ratio when resizing the ImGui window.
 
 Extensibility for new modules.
 

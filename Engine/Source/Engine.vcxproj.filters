@@ -275,6 +275,9 @@
     <Image Include="small.ico">
       <Filter>Win</Filter>
     </Image>
+    <Image Include="custom.ico">
+      <Filter>Win</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Core">

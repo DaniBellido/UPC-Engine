@@ -327,6 +327,7 @@
     <ResourceCompile Include="Engine.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="custom.ico" />
     <Image Include="Engine.ico" />
     <Image Include="small.ico" />
   </ItemGroup>

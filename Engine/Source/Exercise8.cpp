@@ -1,5 +1,5 @@
 #include "Globals.h"
-#include "Exercise7.h"
+#include "Exercise8.h"
 
 #include "D3D12Module.h"
 #include "ResourcesModule.h"
@@ -21,19 +21,25 @@
 
 #include "SceneRenderPass.h"
 
-Exercise7::Exercise7()
+Exercise8::Exercise8()
 {
 }
 
-Exercise7::~Exercise7()
+Exercise8::~Exercise8()
 {
 }
 
-bool Exercise7::init()
+bool Exercise8::init()
 {
     duck = std::make_unique<Model>();
 
-    if (!duck->Load("Assets/Models/Paladin/", "Paladin.gltf", BasicMaterial::Type::PBR_PHONG))
+    qRot = SimpleMath::Quaternion::CreateFromYawPitchRoll(
+            XMConvertToRadians(rotationY), // yaw   (Y)
+            XMConvertToRadians(rotationX), // pitch (X)
+            XMConvertToRadians(rotationZ)  // roll  (Z)
+        );
+
+    if (!duck->Load("Assets/Models/DamagedHelmet/", "damagedHelmet.gltf", BasicMaterial::Type::PBR_PHONG))
     {
         Logger::Err("Exercise6: Duck Model not loaded");
         return false;
@@ -54,11 +60,11 @@ bool Exercise7::init()
     return true;
 }
 
-void Exercise7::render()
+void Exercise8::render()
 {
     // ------------------------------------------------------------
-   // Frame context
-   // ------------------------------------------------------------
+  // Frame context
+  // ------------------------------------------------------------
     D3D12Module* d3d12 = app->getD3D12();
     ID3D12GraphicsCommandList* commandList = d3d12->getCommandList();
     CameraModule* camera = app->getCamera();
@@ -182,7 +188,8 @@ void Exercise7::render()
     pass.end(commandList);
 }
 
-bool Exercise7::createRootSignature()
+
+bool Exercise8::createRootSignature()
 {
     CD3DX12_ROOT_PARAMETER rootParameters[5];
     CD3DX12_DESCRIPTOR_RANGE srvRange;
@@ -255,7 +262,7 @@ bool Exercise7::createRootSignature()
     return true;
 }
 
-bool Exercise7::createPSO()
+bool Exercise8::createPSO()
 {
     // ------------------------------------------------------------
     // Input Layout: POSITION (vec3) + TEXCOORD (vec2)
@@ -360,7 +367,7 @@ bool Exercise7::createPSO()
     return true;
 }
 
-void Exercise7::drawModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers)
+void Exercise8::drawModel(ID3D12GraphicsCommandList* commandList, ShaderDescriptorsModule* shaders, SamplersModule* samplers)
 {
     RingBufferModule* ring = app->getRingBuffer();
 
@@ -440,7 +447,7 @@ void Exercise7::drawModel(ID3D12GraphicsCommandList* commandList, ShaderDescript
     }
 }
 
-void Exercise7::ApplyImGuizmo(CameraModule* camera)
+void Exercise8::ApplyImGuizmo(CameraModule* camera)
 {
     ViewportModule* vp = app->getViewport();
     if (!vp || !vp->isVisible())
@@ -454,7 +461,7 @@ void Exercise7::ApplyImGuizmo(CameraModule* camera)
     ImDrawList* dl = vp->getDrawList();
     if (!dl) return;
     ImGuizmo::SetDrawlist(dl);
-   
+
     ImGui::Begin("Viewport");
     ImGuizmo::BeginFrame();
     ImGuizmo::Enable(true);
@@ -522,11 +529,9 @@ void Exercise7::ApplyImGuizmo(CameraModule* camera)
         rotationY = XMConvertToDegrees(euler.y);
         rotationZ = XMConvertToDegrees(euler.z);
     }
-
-   
 }
 
-void Exercise7::applyMaterialPreset(MaterialPreset preset)
+void Exercise8::applyMaterialPreset(MaterialPreset preset)
 {
     currentPreset = preset;
 
@@ -534,7 +539,7 @@ void Exercise7::applyMaterialPreset(MaterialPreset preset)
     {
     case MaterialPreset::Matte:
         pbrPhongDiffuseColor = { 0.8f, 0.8f, 0.8f, 1.0f };
-        pbrPhongSpecularColor = { 0.04f, 0.04f, 0.04f }; 
+        pbrPhongSpecularColor = { 0.04f, 0.04f, 0.04f };
         pbrPhongShininess = 2.0f;
         break;
 
@@ -545,8 +550,8 @@ void Exercise7::applyMaterialPreset(MaterialPreset preset)
         break;
 
     case MaterialPreset::Metal:
-        pbrPhongDiffuseColor = { 0.05f, 0.05f, 0.05f, 1.0f }; 
-        pbrPhongSpecularColor = { 1.0f, 0.92f, 0.67f };      
+        pbrPhongDiffuseColor = { 0.05f, 0.05f, 0.05f, 1.0f };
+        pbrPhongSpecularColor = { 1.0f, 0.92f, 0.67f };
         pbrPhongShininess = 96.0f;
         break;
 
@@ -565,7 +570,7 @@ void Exercise7::applyMaterialPreset(MaterialPreset preset)
     }
 }
 
-void Exercise7::ExerciseMenu(CameraModule* camera)
+void Exercise8::ExerciseMenu(CameraModule* camera)
 {
     ImGui::Begin("Scene", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 
@@ -602,19 +607,24 @@ void Exercise7::ExerciseMenu(CameraModule* camera)
         ImGui::SameLine();
         if (ImGui::Button("Reset##Rot", ImVec2(50, 0)))
         {
-            rotationX = rotationY = rotationZ = 0.0f;
-            qRot = SimpleMath::Quaternion::Identity;
+            rotationX = 90.0f;
+            rotationY = rotationZ = 0.0f;
+            qRot = SimpleMath::Quaternion::CreateFromYawPitchRoll(
+                XMConvertToRadians(rotationY), // yaw   (Y)
+                XMConvertToRadians(rotationX), // pitch (X)
+                XMConvertToRadians(rotationZ)  // roll  (Z);
+            );
         }
 
         // Scale
         ImGui::Text("Scale");
         ImGui::SameLine(85.0f);
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
-        ImGui::SliderFloat3("##Sca", &scaleX, 0.01f, 1.0f);
+        ImGui::SliderFloat3("##Sca", &scaleX, 0.01f, 5.0f);
         ImGui::SameLine();
         if (ImGui::Button("Reset##Scale", ImVec2(50, 0)))
         {
-            scaleX = scaleY = scaleZ = 0.01f;
+            scaleX = scaleY = scaleZ = 1.00f;
         }
 
         ImGui::Separator();
@@ -661,13 +671,13 @@ void Exercise7::ExerciseMenu(CameraModule* camera)
         ImGui::SameLine(125.0f);
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
         ImGui::ColorEdit4("##SpecCol", &pbrPhongSpecularColor.x);
- 
+
         ImGui::Text("Shininess");
         ImGui::SameLine(125.0f);
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
         ImGui::SliderFloat("##Shin", &pbrPhongShininess, 1.0f, 128.0f);
 
-        
+
         ImGui::Separator();
 
         ImGui::Checkbox("Use Texture", &isTextureVisible);
@@ -770,9 +780,15 @@ void Exercise7::ExerciseMenu(CameraModule* camera)
     {
         // Model resets
         positionX = positionY = positionZ = 0.0f;
-        rotationX = rotationY = rotationZ = 0.0f;
-        qRot = SimpleMath::Quaternion::Identity;
-        scaleX = scaleY = scaleZ = 0.01f;
+        rotationX = 90.0f;
+        rotationY = rotationZ = 0.0f;
+        //qRot = SimpleMath::Quaternion::Identity;
+        qRot = SimpleMath::Quaternion::CreateFromYawPitchRoll(
+            XMConvertToRadians(rotationY), // yaw   (Y)
+            XMConvertToRadians(rotationX), // pitch (X)
+            XMConvertToRadians(rotationZ)  // roll  (Z);
+        );
+        scaleX = scaleY = scaleZ = 1.0f;
 
         // Camera resets  
         camSpeed = 5.0f;
@@ -790,3 +806,4 @@ void Exercise7::ExerciseMenu(CameraModule* camera)
 
     ImGui::End();
 }
+

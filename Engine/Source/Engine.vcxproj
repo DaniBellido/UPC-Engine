@@ -186,6 +186,7 @@
     <ClInclude Include="Exercise5.h" />
     <ClInclude Include="Exercise6.h" />
     <ClInclude Include="Exercise7.h" />
+    <ClInclude Include="Exercise8.h" />
     <ClInclude Include="ExerciseModule.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GamePad.h" />
@@ -205,6 +206,7 @@
     <ClInclude Include="ResourcesModule.h" />
     <ClInclude Include="RingBufferModule.h" />
     <ClInclude Include="SamplersModule.h" />
+    <ClInclude Include="SceneModule.h" />
     <ClInclude Include="SceneRenderPass.h" />
     <ClInclude Include="ShaderDescriptorsModule.h" />
     <ClInclude Include="SimpleMath.h" />
@@ -291,6 +293,7 @@
     <ClCompile Include="Exercise5.cpp" />
     <ClCompile Include="Exercise6.cpp" />
     <ClCompile Include="Exercise7.cpp" />
+    <ClCompile Include="Exercise8.cpp" />
     <ClCompile Include="ExerciseModule.cpp" />
     <ClCompile Include="GamePad.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
@@ -314,6 +317,7 @@
     <ClCompile Include="ResourcesModule.cpp" />
     <ClCompile Include="RingBufferModule.cpp" />
     <ClCompile Include="SamplersModule.cpp" />
+    <ClCompile Include="SceneModule.cpp" />
     <ClCompile Include="SceneRenderPass.cpp" />
     <ClCompile Include="ShaderDescriptorsModule.cpp" />
     <ClCompile Include="SimpleMath.cpp">

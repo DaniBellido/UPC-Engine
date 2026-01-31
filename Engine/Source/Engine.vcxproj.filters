@@ -124,6 +124,10 @@
     <ClCompile Include="SceneRenderPass.cpp">
       <Filter>Passes</Filter>
     </ClCompile>
+    <ClCompile Include="SceneModule.cpp" />
+    <ClCompile Include="Exercise8.cpp">
+      <Filter>Exercises</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="framework.h">
@@ -266,6 +270,10 @@
     </ClInclude>
     <ClInclude Include="SceneRenderPass.h">
       <Filter>Passes</Filter>
+    </ClInclude>
+    <ClInclude Include="SceneModule.h" />
+    <ClInclude Include="Exercise8.h">
+      <Filter>Exercises</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

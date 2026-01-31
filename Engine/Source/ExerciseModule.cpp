@@ -8,6 +8,7 @@
 #include "Exercise5.h"
 #include "Exercise6.h"
 #include "Exercise7.h"
+#include "Exercise8.h"
 
 ExerciseModule::ExerciseModule(D3D12Module* d3d12)
 {
@@ -20,6 +21,7 @@ ExerciseModule::ExerciseModule(D3D12Module* d3d12)
 	exe5 = new Exercise5();
 	exe6 = new Exercise6();
 	exe7 = new Exercise7();
+	exe8 = new Exercise8();
 }
 
 ExerciseModule::~ExerciseModule()
@@ -39,6 +41,7 @@ bool ExerciseModule::init()
 	exe5->init();
 	exe6->init();
 	exe7->init();
+	exe8->init();
 
 
 	t.Stop();
@@ -55,6 +58,7 @@ bool ExerciseModule::cleanUp()
 	delete exe5;
 	delete exe6;
 	delete exe7;
+	delete exe8;
 
 	return true;
 }
@@ -97,6 +101,11 @@ void ExerciseModule::exercise6()
 void ExerciseModule::exercise7()
 {
 	exe7->render();
+}
+
+void ExerciseModule::exercise8()
+{
+	exe8->render();
 }
 
 

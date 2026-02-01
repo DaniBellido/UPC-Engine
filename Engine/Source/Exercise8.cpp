@@ -63,8 +63,8 @@ bool Exercise8::init()
 void Exercise8::render()
 {
     // ------------------------------------------------------------
-  // Frame context
-  // ------------------------------------------------------------
+    // Frame context
+    // ------------------------------------------------------------
     D3D12Module* d3d12 = app->getD3D12();
     ID3D12GraphicsCommandList* commandList = d3d12->getCommandList();
     CameraModule* camera = app->getCamera();
@@ -112,6 +112,11 @@ void Exercise8::render()
     perFrame->Ac = ambient;
     perFrame->viewPos = camera->getPos();
 
+    perFrame->pointPos = pointPosition;
+    perFrame->pointRange = pointRange;
+    perFrame->pointColor = pointColor;
+    perFrame->pointIntensity = pointIntensity;
+
     commandList->SetGraphicsRootConstantBufferView(2, perFrameGPU); // Bind PerFrame CBV -> slot 2 (b2)
 
     // ----------------------------------------------------------------
@@ -133,12 +138,21 @@ void Exercise8::render()
     commandList->SetGraphicsRoot32BitConstants(0, sizeof(Matrix) / sizeof(UINT32), &mvpMatrix, 0);
 
     // ------------------------------------------------------------
-    // GRID & AXIS
+    // DEBUG DRAWS
     // ------------------------------------------------------------
-    if (isGridVisible) { dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray); }
-    if (isAxisVisible) { dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f); }
+    if (isPointLightGizmoVisible) 
+    {
+       // --- Point light debug ---
+       // Small sphere = point position
+        dd::sphere(ddConvert(pointPosition), dd::colors::White, 0.15f, 0, true);
+
+        // Big sphere = point range
+        dd::sphere(ddConvert(pointPosition), dd::colors::Yellow, pointRange, 0, true);
+    }
+
     if (isLightGizmoVisible)
     {
+        // --- Directional light debug ---
         // Choose a reference position (origin is fine)
         SimpleMath::Vector3 origin(0.0f, 0.0f, 0.0f);
 
@@ -150,7 +164,11 @@ void Exercise8::render()
         SimpleMath::Vector3 end = origin + dir * length;
 
         dd::arrow(ddConvert(origin), ddConvert(end), dd::colors::Yellow, 0.05f);
+
     }
+
+    if (isGridVisible) { dd::xzSquareGrid(-10.0f, 10.0f, 0.0f, 1.0f, dd::colors::LightGray); }
+    if (isAxisVisible) { dd::axisTriad(ddConvert(SimpleMath::Matrix::Identity), 0.1f, 1.0f); }
 
     // ------------------------------------------------------------
     // Draw geometry 
@@ -277,8 +295,8 @@ bool Exercise8::createPSO()
     // ------------------------------------------------------------
     // Load compiled shaders (.cso files)
     // ------------------------------------------------------------
-    auto dataVS = DX::ReadData(L"Exercise7VS.cso");
-    auto dataPS = DX::ReadData(L"Exercise7PS.cso");
+    auto dataVS = DX::ReadData(L"Exercise8VS.cso");
+    auto dataPS = DX::ReadData(L"Exercise8PS.cso");
 
 
     if (dataVS.empty() || dataPS.empty()) {
@@ -287,7 +305,7 @@ bool Exercise8::createPSO()
     }
     else
     {
-        Logger::Log("Exercise6: VS Data & PS Data: OK!");
+        Logger::Log("Exercise8: VS Data & PS Data: OK!");
     }
 
     // ------------------------------------------------------------
@@ -705,7 +723,7 @@ void Exercise8::ExerciseMenu(CameraModule* camera)
 
     if (ImGui::CollapsingHeader("Lighting", ImGuiTreeNodeFlags_DefaultOpen))
     {
-
+        // DIRECTIONAL LIGHT
         ImGui::Text("Directial Light");
 
         ImGui::Text("Light Direction");
@@ -726,6 +744,35 @@ void Exercise8::ExerciseMenu(CameraModule* camera)
 
         ImGui::Separator();
         ImGui::Checkbox("Show Light Direction", &isLightGizmoVisible);
+
+        // POINT LIGHT
+        ImGui::Separator();
+        ImGui::Text("Point Light");
+
+        ImGui::Text("Position");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::DragFloat3("##PointPos", &pointPosition.x, 0.05f, -50.0f, 50.0f);
+
+        ImGui::Text("Range");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat("##PointRange", &pointRange, 0.1f, 50.0f, "%.2f");
+        // Evitar rango 0 (si lo pones a 0, la luz "desaparece")
+        pointRange = std::max(pointRange, 0.01f);
+
+        ImGui::Text("Intensity");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat("##PointIntensity", &pointIntensity, 0.0f, 100.0f, "%.2f");
+
+        ImGui::Text("Color");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::ColorEdit3("##PointColor", &pointColor.x);
+
+        ImGui::Checkbox("Show Point Light", &isPointLightGizmoVisible);
+
     }
 
     if (ImGui::CollapsingHeader("Camera"))

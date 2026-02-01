@@ -32,6 +32,14 @@ private:
 		float pad2;
 		SimpleMath::Vector3 viewPos;
 		float pad3;
+
+		// Point light data
+		SimpleMath::Vector3 pointPos;
+		float pointRange;
+
+		SimpleMath::Vector3 pointColor;
+		float pointIntensity;
+
 	};
 
 	// ------------------------------------------------------------------------
@@ -54,11 +62,19 @@ private:
 	float positionX{ 0.0f }, positionY{ 0.0f }, positionZ{ 0.0f };
 
 	// ------------------------------------------------------------------------
-	// Lighting (PerFrame)
+	// Directional Light (PerFrame)
 	// ------------------------------------------------------------------------
 	SimpleMath::Vector3 lightDir = SimpleMath::Vector3(0.5f, -1.0f, 0.5f);
 	SimpleMath::Vector3 lightColor = SimpleMath::Vector3(1.0f, 1.0f, 1.0f);
 	SimpleMath::Vector3 ambient = SimpleMath::Vector3(0.25f, 0.25f, 0.25f);
+
+	// ------------------------------------------------------------------------
+	// Point Light (PerFrame)
+	// ------------------------------------------------------------------------
+	SimpleMath::Vector3 pointPosition = { 0, 3, 0 };
+	float pointRange = 5.0f;
+	SimpleMath::Vector3 pointColor = SimpleMath::Vector3(0.0f, 0.0f, 1.0f);
+	float pointIntensity = 10.0f;
 
 	// ------------------------------------------------------------------------
 	// PBR Phong material overrides (PerInstance)
@@ -87,6 +103,7 @@ private:
 	bool isGizmoVisible = true;
 	bool isTextureVisible = true;
 	bool isLightGizmoVisible = true;
+	bool isPointLightGizmoVisible = true;
 	bool isWireframe = false;
 	bool isWireframeOverlay = false;
 	bool isNormalsVisible = false;

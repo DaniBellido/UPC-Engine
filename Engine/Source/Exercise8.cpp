@@ -39,7 +39,7 @@ bool Exercise8::init()
             XMConvertToRadians(rotationZ)  // roll  (Z)
         );
 
-    if (!duck->Load("Assets/Models/Duck/", "duck.gltf", BasicMaterial::Type::PBR_PHONG))
+    if (!duck->Load("Assets/Models/DamagedHelmet/", "damagedHelmet.gltf", BasicMaterial::Type::PBR_PHONG))
     {
         Logger::Err("Exercise8: Duck Model not loaded");
         return false;
@@ -474,8 +474,9 @@ void Exercise8::drawModel(ID3D12GraphicsCommandList* commandList, ShaderDescript
         // ------------------------------------------------------------
         PerInstance* perInstance = nullptr;
         auto perInstanceGPU = ring->allocBuffer(sizeof(PerInstance), (void**)&perInstance);
+
         perInstance->modelMat = duck->getModelMatrix().Transpose();
-        perInstance->normalMat = duck->getModelMatrix().Invert().Transpose();
+        perInstance->normalMat = duck->getModelMatrix().Invert();
 
         // Material data
         const BasicMaterial& mat = duck->getMaterialForMesh(i);

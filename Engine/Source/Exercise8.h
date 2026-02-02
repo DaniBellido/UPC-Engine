@@ -81,7 +81,7 @@ private:
 	// ------------------------------------------------------------------------
 	// Directional Light (PerFrame)
 	// ------------------------------------------------------------------------
-	SimpleMath::Vector3 lightDir = SimpleMath::Vector3(0.5f, -1.0f, 0.5f);
+	SimpleMath::Vector3 lightDir = SimpleMath::Vector3(0.0f, -1.0f, 0.0f);
 	SimpleMath::Vector3 lightColor = SimpleMath::Vector3(1.0f, 1.0f, 1.0f);
 	SimpleMath::Vector3 ambient = SimpleMath::Vector3(0.25f, 0.25f, 0.25f);
 
@@ -90,13 +90,13 @@ private:
 	// ------------------------------------------------------------------------
 	SimpleMath::Vector3 pointPosition = { 0, 3, 0 };
 	float pointRange = 5.0f;
-	SimpleMath::Vector3 pointColor = SimpleMath::Vector3(0.0f, 0.0f, 1.0f);
+	SimpleMath::Vector3 pointColor = SimpleMath::Vector3(1.0f, 0.0f, 0.0f);
 	float pointIntensity = 10.0f;
 
 	// ------------------------------------------------------------------------
 	// Spot Light (PerFrame)
 	// ------------------------------------------------------------------------
-	SimpleMath::Vector3 spotPosition = { 0.0f, 5.0f, 0.0f };
+	SimpleMath::Vector3 spotPosition = { 0.0f, 3.0f, 0.0f };
 	float spotRange = 20.0f;
 
 	SimpleMath::Vector3 spotDirection = { 0.0f, -1.0f, 0.0f }; 

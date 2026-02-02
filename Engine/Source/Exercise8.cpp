@@ -107,38 +107,63 @@ void Exercise8::render()
     PerFrame* perFrame = nullptr;
     auto perFrameGPU = ring->allocBuffer(sizeof(PerFrame), (void**)&perFrame);
 
-    perFrame->L = lightDir;
-    perFrame->Lc = lightColor;
     perFrame->Ac = ambient;
     perFrame->viewPos = camera->getPos();
 
-    perFrame->pointPos = pointPosition;
-    perFrame->pointRange = pointRange;
-    perFrame->pointColor = pointColor;
-    perFrame->pointIntensity = pointIntensity;
+    perFrame->NumDirLights = 1;
+    perFrame->NumPointLights = 1;
+    perFrame->NumSpotLights = 1;
 
-    // --- Spot light ---
+    commandList->SetGraphicsRootConstantBufferView(2, perFrameGPU);
+
+    // Directional
+    DirectionalLightGPU dirLights[1] = {};
+    dirLights[0].direction = XMFLOAT3(lightDir.x, lightDir.y, lightDir.z);
+    dirLights[0].color = XMFLOAT3(lightColor.x, lightColor.y, lightColor.z);
+    dirLights[0].intensity = 1.0f;
+
+    // Point
+    PointLightGPU pointLights[1] = {};
+    pointLights[0].position = XMFLOAT3(pointPosition.x, pointPosition.y, pointPosition.z);
+    pointLights[0].color = XMFLOAT3(pointColor.x, pointColor.y, pointColor.z);
+    pointLights[0].intensity = pointIntensity;
+    pointLights[0].radius = pointRange;
+
+
+    // Spot
     spotDirection.Normalize();
+    if (spotOuterAngleDeg < spotInnerAngleDeg) spotOuterAngleDeg = spotInnerAngleDeg;
 
-    // Asegurar inner <= outer
-    if (spotOuterAngleDeg < spotInnerAngleDeg)
-        spotOuterAngleDeg = spotInnerAngleDeg;
-
-    // Convert degrees -> cos(radians)
     float innerRad = XMConvertToRadians(spotInnerAngleDeg);
     float outerRad = XMConvertToRadians(spotOuterAngleDeg);
-    float innerCos = cosf(innerRad);
-    float outerCos = cosf(outerRad);
 
-    perFrame->spotPos = spotPosition;
-    perFrame->spotRange = spotRange;
-    perFrame->spotDir = spotDirection;
-    perFrame->spotIntensity = spotIntensity;
-    perFrame->spotColor = spotColor;
-    perFrame->spotInnerCos = innerCos;
-    perFrame->spotOuterCos = outerCos;
+    SpotLightGPU spotLights[1] = {};
+    spotLights[0].position = XMFLOAT3(spotPosition.x, spotPosition.y, spotPosition.z);
+    spotLights[0].direction = XMFLOAT3(spotDirection.x, spotDirection.y, spotDirection.z);
+    spotLights[0].color = XMFLOAT3(spotColor.x, spotColor.y, spotColor.z);
+    spotLights[0].intensity = spotIntensity;
+    spotLights[0].radius = spotRange;
+    spotLights[0].cosInnerAngle = cosf(innerRad);
+    spotLights[0].cosOuterAngle = cosf(outerRad);
 
-    commandList->SetGraphicsRootConstantBufferView(2, perFrameGPU); // Bind PerFrame CBV -> slot 2 (b2)
+    // Upload DirLights
+    DirectionalLightGPU* dirCPU = nullptr;
+    auto dirGPU = ring->allocBuffer(sizeof(dirLights), (void**)&dirCPU);
+    memcpy(dirCPU, dirLights, sizeof(dirLights));
+
+    // Upload PointLights
+    PointLightGPU* pointCPU = nullptr;
+    auto pointGPU = ring->allocBuffer(sizeof(pointLights), (void**)&pointCPU);
+    memcpy(pointCPU, pointLights, sizeof(pointLights));
+
+    // Upload SpotLights
+    SpotLightGPU* spotCPU = nullptr;
+    auto spotGPU = ring->allocBuffer(sizeof(spotLights), (void**)&spotCPU);
+    memcpy(spotCPU, spotLights, sizeof(spotLights));
+
+    commandList->SetGraphicsRootShaderResourceView(3, dirGPU);
+    commandList->SetGraphicsRootShaderResourceView(4, pointGPU);
+    commandList->SetGraphicsRootShaderResourceView(5, spotGPU);
 
     // ----------------------------------------------------------------
     // Model-View-Projection Matrix
@@ -269,12 +294,12 @@ void Exercise8::render()
 
 bool Exercise8::createRootSignature()
 {
-    CD3DX12_ROOT_PARAMETER rootParameters[5];
+    CD3DX12_ROOT_PARAMETER rootParameters[8];
     CD3DX12_DESCRIPTOR_RANGE srvRange;
     CD3DX12_DESCRIPTOR_RANGE sampRange;
 
     // ------------------------------------------------------------  
-    // [0] MVP constants
+    // [0] MVP constants b0
     // ------------------------------------------------------------
     rootParameters[0].InitAsConstants(16, 0, 0, D3D12_SHADER_VISIBILITY_VERTEX);
 
@@ -288,17 +313,26 @@ bool Exercise8::createRootSignature()
     // ------------------------------------------------------------
     rootParameters[2].InitAsConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_PIXEL);
 
+    // [3] DirLights root SRV (t0)
+    rootParameters[3].InitAsShaderResourceView(0, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+
+    // [4] PointLights root SRV (t1)
+    rootParameters[4].InitAsShaderResourceView(1, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+
+    // [5] SpotLights root SRV (t2)
+    rootParameters[5].InitAsShaderResourceView(2, 0, D3D12_SHADER_VISIBILITY_PIXEL);
+
     // ------------------------------------------------------------
-    // [3]  SRV texture table (t0) - PS
+    // [6]  SRV texture table (t3) - PS
     // ------------------------------------------------------------
-    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-    rootParameters[3].InitAsDescriptorTable(1, &srvRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    srvRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
+    rootParameters[6].InitAsDescriptorTable(1, &srvRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
     // ------------------------------------------------------------
     // [4] Sampler Table (s0) - PS
     // ------------------------------------------------------------
     sampRange.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
-    rootParameters[4].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[7].InitAsDescriptorTable(1, &sampRange, D3D12_SHADER_VISIBILITY_PIXEL);
 
     // ------------------------------------------------------------
     // Create and serialize root signature
@@ -507,10 +541,10 @@ void Exercise8::drawModel(ID3D12GraphicsCommandList* commandList, ShaderDescript
         // Material resources (texture + sampler)
         // ------------------------------------------------------------
         D3D12_GPU_DESCRIPTOR_HANDLE texHandle = shaders->getGPUHandle(mat.getColourTexSRV()); // Texture (t0)
-        commandList->SetGraphicsRootDescriptorTable(3, texHandle);
+        commandList->SetGraphicsRootDescriptorTable(6, texHandle);
 
         D3D12_GPU_DESCRIPTOR_HANDLE sampHandle = samplers->getGPUHandle(0);  // Sampler (s0)
-        commandList->SetGraphicsRootDescriptorTable(4, sampHandle);
+        commandList->SetGraphicsRootDescriptorTable(7, sampHandle);
 
         // ------------------------------------------------------------
         // Draw
@@ -819,7 +853,7 @@ void Exercise8::ExerciseMenu(CameraModule* camera)
         ImGui::SameLine(125.0f);
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
         ImGui::SliderFloat("##PointRange", &pointRange, 0.1f, 50.0f, "%.2f");
-        // Evitar rango 0 (si lo pones a 0, la luz "desaparece")
+        
         pointRange = std::max(pointRange, 0.01f);
 
         ImGui::Text("Intensity");

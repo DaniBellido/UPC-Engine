@@ -1,52 +1,64 @@
 static const float PI = 3.14159265f;
+static const float GAMMA = 2.2f;
+static const float INV_GAMMA = 1.0f / GAMMA;
 
-// ------------------------------------------------------------
-// PerFrame CBV (b2)
-// ------------------------------------------------------------
-cbuffer PerFrame : register(b2)
+// -------------------------------
+// Light structs
+// -------------------------------
+struct DirectionalLight
 {
-    // Directional light
-    float3 L;
-    float pad0;
-
-    // Directional light color * intensity
-    float3 Lc;
-    float pad1;
-
-    // Ambient light color
-    float3 Ac;
-    float pad2;
-
-    // Camera position in world space
-    float3 viewPos;
-    float pad3;
-
-    // Point light parameters
-    float3 pointPos; // point light position in world space
-    float pointRange; // max distance of influence (radius)
-    float3 pointColor; // point light color
-    float pointIntensity; // point light intensity multiplier
-
-    // Spot light parameters
-    // spotDir must be "light rays direction" (light -> scene), normalized
-    float3 spotPos; // spot light position in world space
-    float spotRange; // max distance of influence (radius along axis)
-
-    float3 spotDir; // spot direction (rays), light -> scene
-    float spotIntensity; // intensity multiplier
-
-    float3 spotColor; // spot light color
-    float spotInnerCos; // cos(innerAngle). Must be > spotOuterCos
-
-    float spotOuterCos; // cos(outerAngle)
-    float padS1;
-    float padS2;
-    float padS3;
+    float3 direction;
+    float3 color;
+    float intensity;
 };
 
-// ------------------------------------------------------------
-// PerInstance CBV (b1)
-// ------------------------------------------------------------
+struct PointLight
+{
+    float3 position;
+    float3 color;
+    float intensity;
+    float radius;
+};
+
+struct SpotLight
+{
+    float3 position;
+    float3 direction;
+    float3 color;
+    float intensity;
+    float radius;
+    float cosInnerAngle;
+    float cosOuterAngle;
+    float pad0;
+};
+
+// -------------------------------
+// StructuredBuffers (arrays)
+// -------------------------------
+StructuredBuffer<DirectionalLight> DirLights : register(t0);
+StructuredBuffer<PointLight> PointLights : register(t1);
+StructuredBuffer<SpotLight> SpotLights : register(t2);
+
+// -------------------------------
+// PerFrame (b2): globals + counts
+// -------------------------------
+cbuffer PerFrame : register(b2)
+{
+    float3 Ac;
+    float pad0;
+
+    float3 viewPos;
+    float pad1;
+
+    uint NumDirLights;
+    uint NumPointLights;
+    uint NumSpotLights;
+    uint pad2;
+};
+
+// -------------------------------
+// PerInstance (b1): transforms + material
+// -------------------------------
 cbuffer PerInstance : register(b1)
 {
     float4x4 modelMat;
@@ -59,16 +71,12 @@ cbuffer PerInstance : register(b1)
     float shininess;
 };
 
-// ------------------------------------------------------------
-// Texture + sampler
-// ------------------------------------------------------------
-Texture2D baseTexture : register(t0);
+// -------------------------------
+// Texture moved to t3
+// -------------------------------
+Texture2D baseTexture : register(t3);
 SamplerState samplerState : register(s0);
 
-// ------------------------------------------------------------
-// Pixel shader input (from VS)
-// worldPos and normal MUST be in world space for this to work correctly
-// ------------------------------------------------------------
 struct PSInput
 {
     float4 position : SV_POSITION;
@@ -77,33 +85,20 @@ struct PSInput
     float3 normal : NORMAL;
 };
 
-// ============================================================
-// Helper functions
-// ============================================================
-
-float3 SchlickFresnel(float3 F0, float cosTheta)
+float3 LinearToSRGB(float3 c)
 {
-    // Schlick Fresnel approximation.
-    // cosTheta is clamped in caller.
-    return F0 + (1.0f - F0) * pow(1.0f - cosTheta, 5.0f);
+    return pow(saturate(c), INV_GAMMA);
 }
 
-float Smoothstep(float edge0, float edge1, float x)
+float3 Schlick(float3 F0, float cosTheta)
 {
-    // Standard smoothstep implementation.
-    float t = saturate((x - edge0) / max(edge1 - edge0, 1e-4f));
-    return t * t * (3.0f - 2.0f * t);
+    return F0 + (1.0f - F0) * pow(1.0f - cosTheta, 5.0f);
 }
 
 float EpicAttenuation(float dist, float radius)
 {
-    // "Epic/Unreal-style" smooth radius falloff with an inverse-square-like term.
-    // - radius controls the maximum influence.
-    // - falloff is 1 near the light and smoothly goes to 0 at radius.
-    // - denominator avoids singularities and behaves like inverse-square at mid distances.
     float r = max(radius, 1e-4f);
     float d = dist / r;
-
     float d2 = d * d;
     float d4 = d2 * d2;
 
@@ -113,11 +108,14 @@ float EpicAttenuation(float dist, float radius)
     return falloff / (dist * dist + 1.0f);
 }
 
+float Smoothstep(float e0, float e1, float x)
+{
+    float t = saturate((x - e0) / max(e1 - e0, 1e-4f));
+    return t * t * (3.0f - 2.0f * t);
+}
+
 float3 PBRNeutralToneMapping(float3 color)
 {
-    // Khronos "PBR Neutral" tone mapper (as used in many teaching materials).
-    // This maps HDR values into displayable range while preserving highlights.
-
     float x = min(color.r, min(color.g, color.b));
     float offset = (x < 0.08f) ? (x - 6.25f * x * x) : 0.04f;
     color -= offset;
@@ -138,168 +136,105 @@ float3 PBRNeutralToneMapping(float3 color)
     return lerp(color, newPeak.xxx, g);
 }
 
-float3 LinearToSRGB(float3 linearColor)
+float3 EvaluateBRDF(float3 Cd, float3 Cs, float sh, float3 N, float3 V, float3 Lrays, out float NdotL)
 {
-    // Simple gamma encode (approx sRGB).
-    // If your backbuffer is an sRGB RTV and the GPU does sRGB write, you should NOT do this.
-    const float invGamma = 1.0f / 2.2f;
-    return pow(linearColor, invGamma);
-}
-
-float3 EvaluatePhongBRDF(
-    float3 Cd,
-    float3 Cs,
-    float sh,
-    float3 N,
-    float3 V,
-    float3 Lrays,
-    out float NdotL)
-{
-    // We use a consistent convention:
-    // - Lrays is the direction of incoming light rays (light -> surface).
-    // - The direction to the light source is therefore (-Lrays).
     float3 toLight = -Lrays;
 
     NdotL = saturate(dot(N, toLight));
     if (NdotL <= 0.0f)
         return 0.0f;
 
-    // Normalized Phong specular.
     float phongNorm = (sh + 2.0f) / (2.0f * PI);
 
-    // Specular reflection direction.
-    // reflect(i, n) expects incident vector pointing TOWARDS the surface.
-    // Our Lrays (light -> surface) is indeed an incident direction, so it's correct to use it.
     float3 R = reflect(Lrays, N);
     float VdotR = saturate(dot(V, R));
 
-    // Simple energy compensation based on max channel of F0.
+    float3 F = Schlick(Cs, NdotL);
+
     float rf0Max = max(max(Cs.r, Cs.g), Cs.b);
-
-    // Fresnel term.
-    float3 F = SchlickFresnel(Cs, NdotL);
-
-    // Lambert diffuse + normalized Phong spec.
     float3 diffuse = (Cd * (1.0f - rf0Max)) / PI;
     float3 spec = phongNorm * F * pow(VdotR, sh);
 
     return diffuse + spec;
 }
 
-// ============================================================
-// Main PS
-// ============================================================
+float3 EvalDir(DirectionalLight l, float3 worldPos, float3 N, float3 V, float3 Cd, float3 Cs, float sh)
+{
+    // L = -Dirlight
+    float3 Lrays = normalize(-l.direction);
+
+    float NdotL;
+    float3 brdf = EvaluateBRDF(Cd, Cs, sh, N, V, Lrays, NdotL);
+
+    float3 Li = l.color * l.intensity;
+    return brdf * Li * NdotL;
+}
+
+float3 EvalPoint(PointLight l, float3 worldPos, float3 N, float3 V, float3 Cd, float3 Cs, float sh)
+{
+    // L = normalize(possurface - poslight)
+    float3 toSurface = worldPos - l.position;
+    float dist = length(toSurface);
+    float3 Lrays = (dist > 1e-4f) ? (toSurface / dist) : 0.0f;
+
+    float att = EpicAttenuation(dist, l.radius);
+
+    float NdotL;
+    float3 brdf = EvaluateBRDF(Cd, Cs, sh, N, V, Lrays, NdotL);
+
+    float3 Li = l.color * l.intensity;
+    return brdf * Li * NdotL * att;
+}
+
+float3 EvalSpot(SpotLight l, float3 worldPos, float3 N, float3 V, float3 Cd, float3 Cs, float sh)
+{
+    float3 toSurface = worldPos - l.position;
+    float dist = length(toSurface);
+    float3 Lrays = (dist > 1e-4f) ? (toSurface / dist) : 0.0f;
+
+    float3 Sd = normalize(l.direction);
+
+    // distance attenuation along the light direction
+    float distAxis = dot(toSurface, Sd);
+    float axisMask = (distAxis > 0.0f) ? 1.0f : 0.0f;
+    float att = EpicAttenuation(distAxis, l.radius) * axisMask;
+
+    float cosAngle = dot(Sd, Lrays);
+    float cone = Smoothstep(l.cosOuterAngle, l.cosInnerAngle, cosAngle);
+
+    float NdotL;
+    float3 brdf = EvaluateBRDF(Cd, Cs, sh, N, V, Lrays, NdotL);
+
+    float3 Li = l.color * l.intensity;
+    return brdf * Li * NdotL * att * cone;
+}
+
 float4 main(PSInput input) : SV_TARGET
 {
-    // ============================================================
-    // 1) Material albedo (diffuse) color Cd
-    // ============================================================
     float3 Cd = diffuseColour;
-
-    // Texture sampling assumes you already read the texture in linear space.
-    // If your SRV is NOT sRGB, you'd need an sRGB->linear conversion here.
     if (hasDiffuseTex)
     {
-        Cd *= baseTexture.Sample(samplerState, input.texCoord).rgb;
+        float3 tex = baseTexture.Sample(samplerState, input.texCoord).rgb;
+        Cd *= tex;
     }
 
-    // ============================================================
-    // 2) Shading basis vectors in world space
-    // ============================================================
     float3 N = normalize(input.normal);
     float3 V = normalize(viewPos - input.worldPos);
 
-    // ============================================================
-    // A) DIRECTIONAL LIGHT
-    // ============================================================
-    // L is stored as "light rays direction" (light -> surface).
-    float3 Ld = normalize(L);
+    float3 result = Ac * Cd;
 
-    float NdotLd;
-    float3 brdfD = EvaluatePhongBRDF(Cd, specularColour, shininess, N, V, Ld, NdotLd);
+    for (uint i = 0; i < NumDirLights; ++i)
+        result += EvalDir(DirLights[i], input.worldPos, N, V, Cd, specularColour, shininess);
 
-    // Lc should already be (color * intensity) on CPU side (per your comment).
-    float3 dirTerm = brdfD * Lc * NdotLd;
+    for (uint i = 0; i < NumPointLights; ++i)
+        result += EvalPoint(PointLights[i], input.worldPos, N, V, Cd, specularColour, shininess);
 
-    // ============================================================
-    // B) POINT LIGHT
-    // ============================================================
-    // pointToSurface is also "rays direction" (light -> surface point).
-    float3 pointToSurface = input.worldPos - pointPos;
+    for (uint i = 0; i < NumSpotLights; ++i)
+        result += EvalSpot(SpotLights[i], input.worldPos, N, V, Cd, specularColour, shininess);
 
-    float distP = length(pointToSurface);
-    float invDistP = (distP > 1e-4f) ? (1.0f / distP) : 0.0f;
+    // tone mapping then gamma as the last step
+    result = PBRNeutralToneMapping(result);
+    result = LinearToSRGB(result);
 
-    float3 Lp = pointToSurface * invDistP;
-
-    // Epic attenuation with radius (pointRange).
-    float attenP = EpicAttenuation(distP, pointRange);
-
-    float NdotLp;
-    float3 brdfP = EvaluatePhongBRDF(Cd, specularColour, shininess, N, V, Lp, NdotLp);
-
-    float3 pointLi = pointColor * pointIntensity;
-    float3 pointTerm = brdfP * pointLi * NdotLp * attenP;
-
-    // ============================================================
-    // C) SPOT LIGHT
-    // ============================================================
-    // spotToSurface is "rays direction" (light -> surface).
-    float3 spotToSurface = input.worldPos - spotPos;
-
-    float distS = length(spotToSurface);
-    float invDistS = (distS > 1e-4f) ? (1.0f / distS) : 0.0f;
-
-    float3 Ls = spotToSurface * invDistS;
-
-    // The spotlight axis direction (rays) must be normalized.
-    float3 Sd = normalize(spotDir);
-
-    // PDF requirement: distance attenuation along the light axis.
-    // Projection of the point onto the spotlight axis (light -> scene).
-    float distAxis = dot(spotToSurface, Sd);
-
-    // If the point is behind the spotlight, no contribution.
-    float axisMask = (distAxis > 0.0f) ? 1.0f : 0.0f;
-
-    // Range check along axis (spotRange is treated as radius along the axis).
-    float rangeMask = (distAxis < spotRange) ? 1.0f : 0.0f;
-
-    // Epic attenuation using axis distance (not Euclidean distance).
-    float attenS = EpicAttenuation(distAxis, spotRange) * axisMask * rangeMask;
-
-    // Cone attenuation:
-    // cosAngle = 1 when surface direction matches spotlight direction.
-    float cosAngle = dot(Sd, Ls);
-
-    // English: Smooth transition between outer and inner cone.
-    // Assumes: spotInnerCos > spotOuterCos.
-    float spotCone = Smoothstep(spotOuterCos, spotInnerCos, cosAngle);
-
-    float NdotLs;
-    float3 brdfS = EvaluatePhongBRDF(Cd, specularColour, shininess, N, V, Ls, NdotLs);
-
-    float3 spotLi = spotColor * spotIntensity;
-    float3 spotTerm = brdfS * spotLi * NdotLs * attenS * spotCone;
-
-    // ============================================================
-    // D) AMBIENT
-    // ============================================================
-    float3 ambientTerm = Ac * Cd;
-
-    // ============================================================
-    // 3) Sum lighting (HDR) then tone map + gamma
-    // ============================================================
-    float3 colourHDR = dirTerm + pointTerm + spotTerm + ambientTerm;
-
-    // Tone mapping (HDR -> display range).
-    float3 colourLDR = PBRNeutralToneMapping(colourHDR);
-
-    // Clamp after tone mapping.
-    colourLDR = saturate(colourLDR);
-
-    // Gamma encode for display (only if backbuffer is NOT sRGB).
-    colourLDR = LinearToSRGB(colourLDR);
-
-    return float4(colourLDR, 1.0f);
+    return float4(result, 1.0f);
 }

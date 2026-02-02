@@ -24,39 +24,43 @@ private:
 
 	struct PerFrame
 	{
-		SimpleMath::Vector3 L;
-		float pad0;
-		SimpleMath::Vector3 Lc;
-		float pad1;
 		SimpleMath::Vector3 Ac;
-		float pad2;
+		float pad0;
+
 		SimpleMath::Vector3 viewPos;
-		float pad3;
+		float pad1;
 
-		// Point light data
-		SimpleMath::Vector3 pointPos;
-		float pointRange;
+		uint32_t NumDirLights;
+		uint32_t NumPointLights;
+		uint32_t NumSpotLights;
+		uint32_t pad2;
+	};
 
-		SimpleMath::Vector3 pointColor;
-		float pointIntensity;
+	struct DirectionalLightGPU
+	{
+		XMFLOAT3 direction;
+		XMFLOAT3 color;
+		float intensity;
+	};
 
+	struct PointLightGPU
+	{
+		XMFLOAT3 position;
+		XMFLOAT3 color;
+		float intensity;
+		float radius;
+	};
 
-		// Spot light data
-		SimpleMath::Vector3 spotPos;
-		float spotRange;
-
-		SimpleMath::Vector3 spotDir;
-		float spotIntensity;
-
-		SimpleMath::Vector3 spotColor;
-		float spotInnerCos;
-
-		// padding pack (1 float + 3 pad)
-		float spotOuterCos;
-		float padS1;
-		float padS2;
-		float padS3;
-
+	struct SpotLightGPU
+	{
+		XMFLOAT3 position;
+		XMFLOAT3 direction;
+		XMFLOAT3 color;
+		float intensity;
+		float radius;
+		float cosInnerAngle;
+		float cosOuterAngle;
+		float pad0;
 	};
 
 	// ------------------------------------------------------------------------

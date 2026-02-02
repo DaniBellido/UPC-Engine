@@ -39,21 +39,21 @@ bool Exercise8::init()
             XMConvertToRadians(rotationZ)  // roll  (Z)
         );
 
-    if (!duck->Load("Assets/Models/DamagedHelmet/", "damagedHelmet.gltf", BasicMaterial::Type::PBR_PHONG))
+    if (!duck->Load("Assets/Models/Duck/", "duck.gltf", BasicMaterial::Type::PBR_PHONG))
     {
-        Logger::Err("Exercise6: Duck Model not loaded");
+        Logger::Err("Exercise8: Duck Model not loaded");
         return false;
     }
 
     if (!createRootSignature())
     {
-        Logger::Err("Exercise 6: RootSignature Failed");
+        Logger::Err("Exercise 8: RootSignature Failed");
         return false;
     }
 
     if (!createPSO())
     {
-        Logger::Err("Exercise 6: PSO Failed");
+        Logger::Err("Exercise 8: PSO Failed");
         return false;
     }
 
@@ -117,6 +117,27 @@ void Exercise8::render()
     perFrame->pointColor = pointColor;
     perFrame->pointIntensity = pointIntensity;
 
+    // --- Spot light ---
+    spotDirection.Normalize();
+
+    // Asegurar inner <= outer
+    if (spotOuterAngleDeg < spotInnerAngleDeg)
+        spotOuterAngleDeg = spotInnerAngleDeg;
+
+    // Convert degrees -> cos(radians)
+    float innerRad = XMConvertToRadians(spotInnerAngleDeg);
+    float outerRad = XMConvertToRadians(spotOuterAngleDeg);
+    float innerCos = cosf(innerRad);
+    float outerCos = cosf(outerRad);
+
+    perFrame->spotPos = spotPosition;
+    perFrame->spotRange = spotRange;
+    perFrame->spotDir = spotDirection;
+    perFrame->spotIntensity = spotIntensity;
+    perFrame->spotColor = spotColor;
+    perFrame->spotInnerCos = innerCos;
+    perFrame->spotOuterCos = outerCos;
+
     commandList->SetGraphicsRootConstantBufferView(2, perFrameGPU); // Bind PerFrame CBV -> slot 2 (b2)
 
     // ----------------------------------------------------------------
@@ -148,6 +169,45 @@ void Exercise8::render()
 
         // Big sphere = point range
         dd::sphere(ddConvert(pointPosition), dd::colors::Yellow, pointRange, 0, true);
+    }
+
+    if (isSpotGizmoVisible)
+    {
+        SimpleMath::Vector3 dir = spotDirection;
+        dir.Normalize();
+
+        // outer angle in radians
+        float outerRad = XMConvertToRadians(spotOuterAngleDeg);
+
+        // cone base radius at the end of the range
+        float baseRadius = tanf(outerRad) * spotRange;
+
+        // draw cone (apex at light position)
+        dd::cone(
+            ddConvert(spotPosition),
+            ddConvert(dir),
+            dd::colors::Yellow,
+            baseRadius,
+            0.0f,   // apexRadius (0 = sharp cone)
+            0,      // durationMillis
+            true    // depthEnabled
+        );
+
+        float innerRad = XMConvertToRadians(spotInnerAngleDeg);
+        float innerBaseRadius = tanf(innerRad) * spotRange;
+
+        dd::cone(
+            ddConvert(spotPosition),
+            ddConvert(dir),
+            dd::colors::GreenYellow,
+            innerBaseRadius,
+            0.0f,
+            0,
+            true
+        );
+
+        // optional: small sphere at the light position
+        dd::sphere(ddConvert(spotPosition), dd::colors::White, 0.15f, 0, true);
     }
 
     if (isLightGizmoVisible)
@@ -773,6 +833,74 @@ void Exercise8::ExerciseMenu(CameraModule* camera)
 
         ImGui::Checkbox("Show Point Light", &isPointLightGizmoVisible);
 
+
+        //SPOT LIGHT
+        ImGui::Separator();
+        ImGui::Text("Spot Light");
+
+        // Enable/disable gizmo
+        ImGui::Checkbox("Show Spot Gizmo", &isSpotGizmoVisible);
+
+        // Position
+        ImGui::Text("Position");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::DragFloat3("##SpotPos", &spotPosition.x, 0.05f, -50.0f, 50.0f);
+
+        // Direction (normalized)
+        ImGui::Text("Direction");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::DragFloat3("##SpotDir", &spotDirection.x, 0.01f, -1.0f, 1.0f);
+        spotDirection.Normalize();
+
+        // Range
+        ImGui::Text("Range");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat("##SpotRange", &spotRange, 0.1f, 100.0f, "%.2f");
+        spotRange = std::max(spotRange, 0.01f);
+
+        // Intensity
+        ImGui::Text("Intensity");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat("##SpotIntensity", &spotIntensity, 0.0f, 200.0f, "%.2f");
+
+        // Color
+        ImGui::Text("Color");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::ColorEdit3("##SpotColor", &spotColor.x);
+
+        // Inner / Outer angles
+        ImGui::Text("Inner Angle");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat("##SpotInner", &spotInnerAngleDeg, 0.1f, 89.0f, "%.1f deg");
+
+        ImGui::Text("Outer Angle");
+        ImGui::SameLine(125.0f);
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 60.0f);
+        ImGui::SliderFloat("##SpotOuter", &spotOuterAngleDeg, 0.1f, 89.0f, "%.1f deg");
+
+        // Keep angles sane: outer >= inner and avoid tan(90)
+        spotInnerAngleDeg = std::min(spotInnerAngleDeg, 89.0f);
+        spotOuterAngleDeg = std::min(spotOuterAngleDeg, 89.0f);
+        if (spotOuterAngleDeg < spotInnerAngleDeg)
+            spotOuterAngleDeg = spotInnerAngleDeg;
+
+        // Optional quick reset button
+        if (ImGui::Button("Reset Spot"))
+        {
+            spotPosition = { 0.0f, 5.0f, 0.0f };
+            spotDirection = { 0.0f, -1.0f, 0.0f };
+            spotRange = 20.0f;
+            spotIntensity = 30.0f;
+            spotColor = { 1.0f, 1.0f, 1.0f };
+            spotInnerAngleDeg = 15.0f;
+            spotOuterAngleDeg = 25.0f;
+        }
     }
 
     if (ImGui::CollapsingHeader("Camera"))

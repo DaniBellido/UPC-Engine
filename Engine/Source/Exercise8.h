@@ -40,6 +40,23 @@ private:
 		SimpleMath::Vector3 pointColor;
 		float pointIntensity;
 
+
+		// Spot light data
+		SimpleMath::Vector3 spotPos;
+		float spotRange;
+
+		SimpleMath::Vector3 spotDir;
+		float spotIntensity;
+
+		SimpleMath::Vector3 spotColor;
+		float spotInnerCos;
+
+		// padding pack (1 float + 3 pad)
+		float spotOuterCos;
+		float padS1;
+		float padS2;
+		float padS3;
+
 	};
 
 	// ------------------------------------------------------------------------
@@ -75,6 +92,21 @@ private:
 	float pointRange = 5.0f;
 	SimpleMath::Vector3 pointColor = SimpleMath::Vector3(0.0f, 0.0f, 1.0f);
 	float pointIntensity = 10.0f;
+
+	// ------------------------------------------------------------------------
+	// Spot Light (PerFrame)
+	// ------------------------------------------------------------------------
+	SimpleMath::Vector3 spotPosition = { 0.0f, 5.0f, 0.0f };
+	float spotRange = 20.0f;
+
+	SimpleMath::Vector3 spotDirection = { 0.0f, -1.0f, 0.0f }; 
+	float spotIntensity = 30.0f;
+
+	SimpleMath::Vector3 spotColor = { 1.0f, 1.0f, 1.0f };
+	float spotInnerAngleDeg = 15.0f;
+	float spotOuterAngleDeg = 25.0f;
+
+	bool isSpotGizmoVisible = true;
 
 	// ------------------------------------------------------------------------
 	// PBR Phong material overrides (PerInstance)
